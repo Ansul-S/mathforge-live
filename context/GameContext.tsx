@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
 
 interface UserStats {
     xp: number;
@@ -16,6 +17,8 @@ interface UserStats {
             correct: number;
         };
     };
+    history: { date: string; xp: number; questions: number }[];
+    heatmap: { [key: string]: { correct: number; attempts: number } };
 }
 
 interface Settings {
@@ -29,7 +32,7 @@ interface GameContextType {
     settings: Settings;
     addXP: (amount: number) => void;
     updateStreak: () => void;
-    recordAnswer: (category: string, isCorrect: boolean, timeTaken: number) => void;
+    recordAnswer: (category: string, isCorrect: boolean, timeTaken: number, questionId?: string) => void;
     toggleDarkMode: () => void;
     toggleSound: () => void;
     toggleVibration: () => void;
@@ -51,6 +54,8 @@ const defaultStats: UserStats = {
         reciprocals: { attempted: 0, correct: 0 },
         powers: { attempted: 0, correct: 0 },
     },
+    history: [],
+    heatmap: {},
 };
 
 const defaultSettings: Settings = {
@@ -72,7 +77,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const savedSettings = localStorage.getItem('mathforge_settings');
 
         if (savedStats) {
-            setStats(JSON.parse(savedStats));
+            const parsed = JSON.parse(savedStats);
+            // Merge with default to ensure new fields exist for old users
+            setStats({ ...defaultStats, ...parsed });
         }
         if (savedSettings) {
             const parsedSettings = JSON.parse(savedSettings);
@@ -84,10 +91,51 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoaded(true);
     }, []);
 
-    // Save to localStorage whenever state changes
+    // Sync with Supabase on login
+    useEffect(() => {
+        const syncWithSupabase = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                // Fetch remote stats
+                const { data: remoteProfile } = await supabase
+                    .from('profiles')
+                    .select('stats')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (remoteProfile?.stats) {
+                    // Merge remote stats with local (remote takes precedence if newer, but for now just overwrite local)
+                    // Ideally we'd do a smarter merge, but this is a simple start
+                    setStats(prev => ({ ...prev, ...remoteProfile.stats }));
+                }
+            }
+        };
+        syncWithSupabase();
+    }, []);
+
+    // Save to localStorage and Supabase whenever state changes
     useEffect(() => {
         if (isLoaded) {
             localStorage.setItem('mathforge_stats', JSON.stringify(stats));
+
+            // Sync to Supabase if logged in
+            supabase.auth.getSession().then(({ data: { session } }) => {
+                if (session?.user) {
+                    supabase
+                        .from('profiles')
+                        .upsert({
+                            id: session.user.id,
+                            email: session.user.email,
+                            full_name: session.user.user_metadata.full_name,
+                            avatar_url: session.user.user_metadata.avatar_url,
+                            stats,
+                            updated_at: new Date().toISOString()
+                        })
+                        .then(({ error }) => {
+                            if (error) console.error('Error syncing to Supabase:', error);
+                        });
+                }
+            });
         }
     }, [stats, isLoaded]);
 
@@ -106,7 +154,21 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setStats((prev) => {
             const newXP = prev.xp + amount;
             const newLevel = Math.floor(newXP / 1000) + 1; // Simple leveling: 1000 XP per level
-            return { ...prev, xp: newXP, level: newLevel };
+
+            // Update history for today
+            const today = new Date().toISOString().split('T')[0];
+            const history = [...(prev.history || [])];
+            const todayEntryIndex = history.findIndex(h => h.date === today);
+
+            if (todayEntryIndex >= 0) {
+                history[todayEntryIndex].xp += amount;
+            } else {
+                history.push({ date: today, xp: amount, questions: 0 });
+                // Keep only last 30 days
+                if (history.length > 30) history.shift();
+            }
+
+            return { ...prev, xp: newXP, level: newLevel, history };
         });
     };
 
@@ -129,9 +191,29 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
     };
 
-    const recordAnswer = (category: string, isCorrect: boolean, timeTaken: number) => {
+    const recordAnswer = (category: string, isCorrect: boolean, timeTaken: number, questionId?: string) => {
         setStats((prev) => {
             const catStats = prev.categoryStats[category] || { attempted: 0, correct: 0 };
+
+            // Update heatmap
+            const heatmap = { ...(prev.heatmap || {}) };
+            if (questionId) {
+                const entry = heatmap[questionId] || { correct: 0, attempts: 0 };
+                heatmap[questionId] = {
+                    correct: entry.correct + (isCorrect ? 1 : 0),
+                    attempts: entry.attempts + 1
+                };
+            }
+
+            // Update history questions count
+            const today = new Date().toISOString().split('T')[0];
+            const history = [...(prev.history || [])];
+            const todayEntryIndex = history.findIndex(h => h.date === today);
+            if (todayEntryIndex >= 0) {
+                history[todayEntryIndex].questions += 1;
+            } else {
+                history.push({ date: today, xp: 0, questions: 1 });
+            }
 
             return {
                 ...prev,
@@ -145,6 +227,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         correct: catStats.correct + (isCorrect ? 1 : 0),
                     },
                 },
+                heatmap,
+                history
             };
         });
         updateStreak();

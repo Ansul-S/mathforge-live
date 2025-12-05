@@ -74,118 +74,109 @@ export const getAllPowers = () => {
 };
 
 // --- Quiz Generation ---
-export const generateQuizQuestion = (
-    category: MathCategory,
-    optionsCount: number = 4,
-    config?: any
-): Question => {
-    let question = '';
-    let answer: string | number = '';
-    let options: (string | number)[] = [];
-    let explanation = '';
 
-    const getRandomInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+const generateOptions = (correctAnswer: number | string, count: number, type: 'number' | 'decimal' | 'string') => {
+    const options = new Set<number | string>();
+    options.add(correctAnswer);
 
-    const generateOptions = (correct: number, range: number = 10) => {
-        const opts = new Set<number>();
-        opts.add(correct);
-        while (opts.size < optionsCount) {
-            const diff = getRandomInt(-range, range);
-            const val = correct + diff;
-            if (val > 0 && val !== correct) opts.add(val);
-        }
-        return Array.from(opts).sort(() => Math.random() - 0.5);
-    };
+    const getRandomNumber = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
 
-    switch (category) {
-        case 'tables': {
-            const table = config?.table || getRandomInt(1, 20); // Default range if not specified
-            const multiplier = getRandomInt(1, 20);
-            question = `${table} × ${multiplier} = ?`;
-            answer = table * multiplier;
-            options = generateOptions(answer as number, Math.max(10, table));
-            break;
-        }
-        case 'squares': {
-            const n = getRandomInt(1, 100);
-            question = `${n}² = ?`;
-            answer = n * n;
-            options = generateOptions(answer as number, n * 5);
-            break;
-        }
-        case 'cubes': {
-            const n = getRandomInt(1, 20);
-            question = `${n}³ = ?`;
-            answer = n * n * n;
-            options = generateOptions(answer as number, n * n);
-            break;
-        }
-        case 'reciprocals': {
-            const n = getRandomInt(1, 30);
-            const type = Math.random() > 0.5 ? 'decimal' : 'percentage';
-            const rec = 1 / n;
-
-            if (type === 'decimal') {
-                question = `Decimal value of 1/${n}?`;
-                answer = parseFloat(rec.toFixed(4));
-                // Generate close decimal options
-                const opts = new Set<number>();
-                opts.add(answer as number);
-                while (opts.size < optionsCount) {
-                    const wrongN = getRandomInt(Math.max(1, n - 5), n + 5);
-                    if (wrongN !== n) opts.add(parseFloat((1 / wrongN).toFixed(4)));
-                }
-                options = Array.from(opts).sort(() => Math.random() - 0.5);
-            } else {
-                question = `Percentage value of 1/${n}?`;
-                answer = parseFloat((rec * 100).toFixed(2));
-                const opts = new Set<number>();
-                opts.add(answer as number);
-                while (opts.size < optionsCount) {
-                    const wrongN = getRandomInt(Math.max(1, n - 5), n + 5);
-                    if (wrongN !== n) opts.add(parseFloat(((1 / wrongN) * 100).toFixed(2)));
-                }
-                options = Array.from(opts).sort(() => Math.random() - 0.5);
+    while (options.size < count) {
+        let wrongAnswer: number | string;
+        if (type === 'number') {
+            const diff = getRandomNumber(-10, 10);
+            const val = (correctAnswer as number) + diff;
+            if (val > 0 && val !== correctAnswer) {
+                wrongAnswer = val;
+                options.add(wrongAnswer);
             }
-            break;
-        }
-        case 'powers': {
-            const bases = [2, 3, 5, 6, 7];
-            const base = bases[getRandomInt(0, bases.length - 1)];
-            let maxExp = 8;
-            if (base === 2) maxExp = 25;
-            if (base === 3) maxExp = 12;
-            if (base === 5) maxExp = 10;
-
-            const exp = getRandomInt(1, maxExp);
-
-            if (Math.random() > 0.5) {
-                question = `${base}^${exp} = ?`;
-                answer = Math.pow(base, exp);
-                // Generate power options (same base different exp)
-                const opts = new Set<number>();
-                opts.add(answer as number);
-                while (opts.size < optionsCount) {
-                    const wrongExp = getRandomInt(Math.max(1, exp - 3), exp + 3);
-                    if (wrongExp !== exp) opts.add(Math.pow(base, wrongExp));
-                }
-                options = Array.from(opts).sort(() => Math.random() - 0.5);
-            } else {
-                const val = Math.pow(base, exp);
-                question = `${val} is which power of ${base}?`;
-                answer = exp;
-                options = generateOptions(answer as number, 3);
+        } else if (type === 'decimal') {
+            const diff = getRandomNumber(-5, 5);
+            const val = (correctAnswer as number) * (1 + diff / 100);
+            wrongAnswer = parseFloat(val.toFixed(4));
+            if (wrongAnswer !== correctAnswer) {
+                options.add(wrongAnswer);
             }
-            break;
+        } else {
+            // Fallback for strings or other types
+            wrongAnswer = getRandomNumber(1, 100).toString();
+            if (wrongAnswer !== correctAnswer) {
+                options.add(wrongAnswer);
+            }
         }
     }
-
-    return {
-        id: Math.random().toString(36).substr(2, 9),
-        question,
-        answer,
-        options,
-        explanation,
-        category
-    };
+    return Array.from(options).sort(() => Math.random() - 0.5);
 };
+
+export function generateQuizQuestion(category: MathCategory, optionCount: number = 4, config?: any): Question {
+    switch (category) {
+        case 'tables': {
+            const min = config?.min || 2;
+            const max = config?.max || 20;
+            const num = Math.floor(Math.random() * (max - min + 1)) + min;
+            const mult = Math.floor(Math.random() * 10) + 1;
+            const answer = num * mult;
+            return {
+                id: `${num}x${mult}`,
+                question: `${num} × ${mult} = ?`,
+                answer,
+                options: generateOptions(answer, optionCount, 'number'),
+                category
+            };
+        }
+        case 'squares': {
+            const min = config?.min || 2;
+            const max = config?.max || 30;
+            const num = Math.floor(Math.random() * (max - min + 1)) + min;
+            const answer = num * num;
+            return {
+                id: `sq${num}`,
+                question: `${num}² = ?`,
+                answer,
+                options: generateOptions(answer, optionCount, 'number'),
+                category
+            };
+        }
+        case 'cubes': {
+            const min = config?.min || 2;
+            const max = config?.max || 15;
+            const num = Math.floor(Math.random() * (max - min + 1)) + min;
+            const answer = num * num * num;
+            return {
+                id: `cb${num}`,
+                question: `${num}³ = ?`,
+                answer,
+                options: generateOptions(answer, optionCount, 'number'),
+                category
+            };
+        }
+        case 'reciprocals': {
+            const min = config?.min || 2;
+            const max = config?.max || 20;
+            const num = Math.floor(Math.random() * (max - min + 1)) + min;
+            const answer = (1 / num).toFixed(4);
+            return {
+                id: `rc${num}`,
+                question: `1/${num} = ?`,
+                answer,
+                options: generateOptions(parseFloat(answer), optionCount, 'decimal'),
+                category
+            };
+        }
+        case 'powers': {
+            const bases = [2, 3, 5];
+            const base = bases[Math.floor(Math.random() * bases.length)];
+            const exp = Math.floor(Math.random() * 5) + 2;
+            const answer = Math.pow(base, exp);
+            return {
+                id: `pw${base}^${exp}`,
+                question: `${base}^${exp} = ?`,
+                answer,
+                options: generateOptions(answer, optionCount, 'number'),
+                category
+            };
+        }
+        default:
+            return { id: 'err', question: 'Error', answer: 0, category: 'tables' };
+    }
+}
