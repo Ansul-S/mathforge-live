@@ -4,7 +4,6 @@ import { useThemeStore } from "@/store/themeStore";
 import { SakuraParticles } from "@/components/particles/SakuraParticles";
 import { EmberParticles } from "@/components/particles/EmberParticles";
 import { RankModal } from "@/components/ui/RankModal";
-import { motion, AnimatePresence } from "framer-motion";
 
 export function RealmLayout({ children }: { children: React.ReactNode }) {
     const { realm } = useThemeStore();
@@ -18,17 +17,7 @@ export function RealmLayout({ children }: { children: React.ReactNode }) {
 
             {/* Content */}
             <div className="relative z-10">
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={realm}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.5 }}
-                    >
-                        {children}
-                    </motion.div>
-                </AnimatePresence>
+                {children}
             </div>
 
             <RankModal />
