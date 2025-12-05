@@ -164,11 +164,14 @@
     border-color: var(--color-border);
   }
 
+  html {
+    background-color: var(--color-background);
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
-    /* Removed fixed dark gradient, using background-color which switches with theme */
-    background-attachment: fixed;
+    min-height: 100vh;
   }
 }
 
