@@ -54,7 +54,7 @@ export const useProgressStore = create<ProgressState>()(
             addPetals: (amount) => {
                 const { petals, totalXP, rank } = get();
                 const newPetals = petals + amount;
-                const newTotalXP = totalXP + amount;
+                const newTotalXP = totalXP + amount; // XP = Petals + Embers (cumulative)
 
                 // Check for rank up
                 let newRank = rank;
@@ -72,7 +72,7 @@ export const useProgressStore = create<ProgressState>()(
             addEmbers: (amount) => {
                 const { embers, totalXP, rank } = get();
                 const newEmbers = embers + amount;
-                const newTotalXP = totalXP + amount;
+                const newTotalXP = totalXP + amount; // XP = Petals + Embers (cumulative)
 
                 // Check for rank up
                 let newRank = rank;

@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
+import type { Container, Engine } from "@tsparticles/engine";
 
 export function EmberParticles() {
     const [init, setInit] = useState(false);
 
     useEffect(() => {
-        initParticlesEngine(async (engine) => {
+        initParticlesEngine(async (engine: Engine) => {
             await loadSlim(engine);
         }).then(() => {
             setInit(true);
@@ -27,7 +28,7 @@ export function EmberParticles() {
                         value: "transparent",
                     },
                 },
-                fpsLimit: 60, // Reduced from 120
+                fpsLimit: 120,
                 interactivity: {
                     events: {
                         onClick: {
@@ -35,17 +36,23 @@ export function EmberParticles() {
                             mode: "push",
                         },
                         onHover: {
-                            enable: false, // Disabled hover effect
-                            mode: "bubble",
-                        },
-                        resize: {
                             enable: true,
+                            mode: "repulse",
+                        },
+                    },
+                    modes: {
+                        push: {
+                            quantity: 4,
+                        },
+                        repulse: {
+                            distance: 100,
+                            duration: 0.4,
                         },
                     },
                 },
                 particles: {
                     color: {
-                        value: ["#d64040", "#f78c29", "#ffff00"],
+                        value: ["#f78c29", "#d64040", "#ffaa00"],
                     },
                     move: {
                         direction: "top",
@@ -54,23 +61,22 @@ export function EmberParticles() {
                             default: "out",
                         },
                         random: true,
-                        speed: 3,
+                        speed: 1.5,
                         straight: false,
                     },
                     number: {
                         density: {
                             enable: true,
-                            width: 800,
-                            height: 800,
                         },
-                        value: 20, // Reduced from 40
+                        value: 60,
                     },
                     opacity: {
-                        value: { min: 0.1, max: 0.8 },
+                        value: { min: 0.3, max: 0.8 },
                         animation: {
                             enable: true,
                             speed: 1,
-                            sync: false
+                            sync: false,
+                            mode: "auto"
                         }
                     },
                     shape: {
@@ -79,18 +85,11 @@ export function EmberParticles() {
                     size: {
                         value: { min: 1, max: 3 },
                     },
-                    life: {
-                        duration: {
-                            sync: false,
-                            value: 3
-                        },
-                        count: 0,
-                        delay: {
-                            random: {
-                                enable: true,
-                                minimumValue: 0.5
-                            },
-                            value: 1
+                    twinkle: {
+                        particles: {
+                            enable: true,
+                            frequency: 0.05,
+                            opacity: 1
                         }
                     }
                 },

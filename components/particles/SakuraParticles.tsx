@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
+import type { Container, Engine } from "@tsparticles/engine";
 
 export function SakuraParticles() {
     const [init, setInit] = useState(false);
 
     useEffect(() => {
-        initParticlesEngine(async (engine) => {
+        initParticlesEngine(async (engine: Engine) => {
             await loadSlim(engine);
         }).then(() => {
             setInit(true);
@@ -27,7 +28,7 @@ export function SakuraParticles() {
                         value: "transparent",
                     },
                 },
-                fpsLimit: 60, // Reduced from 120
+                fpsLimit: 120,
                 interactivity: {
                     events: {
                         onClick: {
@@ -35,11 +36,17 @@ export function SakuraParticles() {
                             mode: "push",
                         },
                         onHover: {
-                            enable: false, // Disabled hover effect
+                            enable: true,
                             mode: "repulse",
                         },
-                        resize: {
-                            enable: true,
+                    },
+                    modes: {
+                        push: {
+                            quantity: 4,
+                        },
+                        repulse: {
+                            distance: 100,
+                            duration: 0.4,
                         },
                     },
                 },
@@ -60,10 +67,8 @@ export function SakuraParticles() {
                     number: {
                         density: {
                             enable: true,
-                            width: 800,
-                            height: 800,
                         },
-                        value: 15, // Reduced from 30
+                        value: 40,
                     },
                     opacity: {
                         value: 0.6,
@@ -74,7 +79,7 @@ export function SakuraParticles() {
                         }
                     },
                     shape: {
-                        type: "circle",
+                        type: "circle", // Ideally this would be an image of a petal, but circle works for now
                     },
                     size: {
                         value: { min: 3, max: 6 },

@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { useGame } from '@/context/GameContext';
+import { useDifficultyStore } from '@/store/difficultyStore';
+import { useThemeStore } from '@/store/themeStore';
 import { Brain, ArrowRight, RefreshCw, Calculator, Percent } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { playSuccessSound, playErrorSound } from '@/lib/sound';
@@ -19,6 +21,9 @@ interface MentalQuestion {
 
 export function MentalMathGame() {
     const { recordAnswer, addXP, settings } = useGame();
+    const { getDifficulty, updateDifficulty } = useDifficultyStore();
+    const { realm } = useThemeStore();
+
     const [question, setQuestion] = useState<MentalQuestion | null>(null);
     const [userAnswer, setUserAnswer] = useState<string>('');
     const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
@@ -34,7 +39,19 @@ export function MentalMathGame() {
     }, [question]);
 
     const generateQuestion = (): MentalQuestion => {
-        const ops: Operation[] = ['+', '-', '*', '%'];
+        const difficulty = getDifficulty('mental');
+        // Simple difficulty mapping for mental math
+        // Level 1: + - (small)
+        // Level 2: + - (large), * (small)
+        // Level 3: * (medium), / (simple)
+        // Level 4: % (simple), mixed
+        // Level 5: Complex mixed
+
+        let ops: Operation[] = ['+', '-'];
+        if (difficulty >= 2) ops.push('*');
+        if (difficulty >= 3) ops.push('/');
+        if (difficulty >= 4) ops.push('%');
+
         const op = ops[Math.floor(Math.random() * ops.length)];
 
         let qText = '';
@@ -42,30 +59,42 @@ export function MentalMathGame() {
 
         switch (op) {
             case '+': {
-                const a = Math.floor(Math.random() * 90) + 10; // 10-99
-                const b = Math.floor(Math.random() * 90) + 10;
+                const max = difficulty * 20 + 10;
+                const a = Math.floor(Math.random() * max) + 5;
+                const b = Math.floor(Math.random() * max) + 5;
                 qText = `${a} + ${b}`;
                 ans = a + b;
                 break;
             }
             case '-': {
-                const a = Math.floor(Math.random() * 90) + 10;
-                const b = Math.floor(Math.random() * a); // Ensure positive result
+                const max = difficulty * 20 + 10;
+                const a = Math.floor(Math.random() * max) + 5;
+                const b = Math.floor(Math.random() * a);
                 qText = `${a} - ${b}`;
                 ans = a - b;
                 break;
             }
             case '*': {
-                const a = Math.floor(Math.random() * 20) + 2;
-                const b = Math.floor(Math.random() * 9) + 2; // 2-digit * 1-digit
+                const maxA = difficulty * 5 + 5;
+                const maxB = difficulty * 3 + 2;
+                const a = Math.floor(Math.random() * maxA) + 2;
+                const b = Math.floor(Math.random() * maxB) + 2;
                 qText = `${a} × ${b}`;
                 ans = a * b;
+                break;
+            }
+            case '/': {
+                const maxB = difficulty * 3 + 2;
+                const b = Math.floor(Math.random() * maxB) + 2;
+                const a = b * (Math.floor(Math.random() * 10) + 1);
+                qText = `${a} ÷ ${b}`;
+                ans = a / b;
                 break;
             }
             case '%': {
                 const percentages = [10, 20, 25, 50, 75];
                 const p = percentages[Math.floor(Math.random() * percentages.length)];
-                const base = Math.floor(Math.random() * 20) * 10; // Multiples of 10
+                const base = Math.floor(Math.random() * 20) * 10;
                 qText = `${p}% of ${base}`;
                 ans = (p / 100) * base;
                 break;
@@ -90,7 +119,9 @@ export function MentalMathGame() {
         if (!userAnswer || !question) return;
 
         const val = parseFloat(userAnswer);
-        const correct = Math.abs(val - question.answer) < 0.01; // Allow small float diff
+        const correct = Math.abs(val - question.answer) < 0.01;
+
+        updateDifficulty('mental', correct);
 
         if (correct) {
             setFeedback('correct');
@@ -98,6 +129,19 @@ export function MentalMathGame() {
             if (settings.soundEnabled) playSuccessSound();
             addXP(15 + streak * 2);
             recordAnswer('mental', true, 0);
+
+            // Visual feedback
+            const colors = realm === 'sakura'
+                ? ['#e44372', '#f5d48e', '#ffffff']
+                : ['#d64040', '#f78c29', '#ffff00'];
+
+            confetti({
+                particleCount: 30,
+                spread: 50,
+                origin: { y: 0.7 },
+                colors: colors
+            });
+
             setTimeout(loadNextQuestion, 500);
         } else {
             setFeedback('wrong');
@@ -121,8 +165,8 @@ export function MentalMathGame() {
             </div>
 
             <Card className={`overflow-hidden glass-card transition-colors duration-200 ${feedback === 'correct' ? 'border-green-500/50 bg-green-500/10' :
-                    feedback === 'wrong' ? 'border-red-500/50 bg-red-500/10' :
-                        'border-purple-500/20'
+                feedback === 'wrong' ? 'border-red-500/50 bg-red-500/10' :
+                    'border-purple-500/20'
                 }`}>
                 <CardHeader className="py-12 text-center">
                     <h2 className="text-5xl font-black tracking-tight">{question?.text}</h2>

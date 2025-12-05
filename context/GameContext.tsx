@@ -160,12 +160,34 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const recordAnswer = (category: string, isCorrect: boolean, timeTaken: number, questionId?: string) => {
         // Award Petals/Embers based on Tier if correct
-        if (isCorrect && currentTier) {
-            const tierConfig = TIERS[currentTier];
-            if (tierConfig.reward.type === 'petals') {
-                addPetals(tierConfig.reward.amount);
-            } else {
-                addEmbers(tierConfig.reward.amount);
+        if (isCorrect) {
+            if (currentTier) {
+                const tierConfig = TIERS[currentTier];
+                if (tierConfig.reward.type === 'petals') {
+                    addPetals(tierConfig.reward.amount);
+                } else {
+                    addEmbers(tierConfig.reward.amount);
+                }
+            } else if (category === 'mental' || category === 'mixed') {
+                // Default rewards for non-tiered modes (Mental/Mixed)
+                // Use realm to decide currency type if no tier is active
+                // Access realm from store directly or pass it in? 
+                // Since we can't easily access store hook inside this callback without refactoring,
+                // we'll assume a default behavior or try to read from localStorage/store state if possible.
+                // Better approach: Let the component handle the specific reward call, OR
+                // use a simple heuristic: Mental = Petals (calm), Mixed = Embers (challenge) or split.
+
+                // For now, let's award Petals for Mental and Embers for Mixed as a baseline,
+                // or check if we can access the store state.
+                // Actually, we can import useThemeStore outside component but hooks rules apply.
+                // Let's just award Petals by default for now to be safe, or 1 of each for Mixed.
+
+                if (category === 'mental') {
+                    addPetals(1);
+                } else if (category === 'mixed') {
+                    addPetals(1);
+                    // Maybe add embers if it was fast?
+                }
             }
         }
 

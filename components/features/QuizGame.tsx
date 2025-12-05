@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { ProgressBar } from '@/components/ui/ProgressBar';
-import { generateQuizQuestion, Question, MathCategory } from '@/lib/math-utils';
+import { generateQuizQuestion, Question, MathCategory, checkAnswer } from '@/lib/math-utils';
 import { useGame } from '@/context/GameContext';
 import { useThemeStore } from '@/store/themeStore';
 import { useProgressStore } from '@/store/progressStore';
+import { useDifficultyStore } from '@/store/difficultyStore';
 import { CheckCircle, XCircle, Clock, ArrowRight, RefreshCw, Trophy, Snowflake, Divide } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { playSuccessSound, playErrorSound, playClickSound } from '@/lib/sound';
@@ -23,8 +24,10 @@ export function QuizGame({ category, config, onComplete }: QuizGameProps) {
     const { recordAnswer, addXP, settings } = useGame();
     const { realm } = useThemeStore();
     const { inventory, consumeItem } = useProgressStore();
+    const { getDifficulty, updateDifficulty } = useDifficultyStore();
+
     const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
-    const [selectedOption, setSelectedOption] = useState<string | number | null>(null);
+    const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
     const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
     const [streak, setStreak] = useState(0);
     const [score, setScore] = useState(0);
@@ -34,7 +37,7 @@ export function QuizGame({ category, config, onComplete }: QuizGameProps) {
 
     // Power-up states
     const [isFrozen, setIsFrozen] = useState(false);
-    const [disabledOptions, setDisabledOptions] = useState<(string | number)[]>([]);
+    const [disabledOptions, setDisabledOptions] = useState<string[]>([]);
 
     const totalQuestions = config?.totalQuestions || 10;
 
@@ -44,7 +47,7 @@ export function QuizGame({ category, config, onComplete }: QuizGameProps) {
 
     // Timer Logic
     useEffect(() => {
-        if (!config?.timeLimit || selectedOption !== null || isFrozen) return;
+        if (!config?.timeLimit || selectedOptionId !== null || isFrozen) return;
 
         if (timeLeft > 0) {
             const timer = setInterval(() => {
@@ -54,7 +57,7 @@ export function QuizGame({ category, config, onComplete }: QuizGameProps) {
         } else if (timeLeft === 0) {
             handleTimeout();
         }
-    }, [timeLeft, selectedOption, isFrozen]);
+    }, [timeLeft, selectedOptionId, isFrozen]);
 
     const loadNextQuestion = () => {
         if (questionCount >= totalQuestions) {
@@ -67,9 +70,12 @@ export function QuizGame({ category, config, onComplete }: QuizGameProps) {
             onComplete?.();
             return;
         }
-        const q = generateQuizQuestion(category, 4, config);
+
+        const difficulty = getDifficulty(category);
+        const q = generateQuizQuestion(category, 4, config, difficulty);
+
         setCurrentQuestion(q);
-        setSelectedOption(null);
+        setSelectedOptionId(null);
         setIsCorrect(null);
         setStartTime(Date.now());
         if (config?.timeLimit) setTimeLeft(config.timeLimit);
@@ -80,23 +86,25 @@ export function QuizGame({ category, config, onComplete }: QuizGameProps) {
     };
 
     const handleTimeout = () => {
-        if (selectedOption !== null) return; // Already answered
+        if (selectedOptionId !== null) return; // Already answered
 
-        setSelectedOption('TIMEOUT');
+        setSelectedOptionId('TIMEOUT');
         setIsCorrect(false);
+        updateDifficulty(category, false);
         if (settings.soundEnabled) playErrorSound();
         recordAnswer(category, false, config?.timeLimit * 1000);
     };
 
-    const handleAnswer = (option: string | number) => {
-        if (selectedOption !== null) return; // Prevent multiple clicks
+    const handleAnswer = (optionId: string) => {
+        if (selectedOptionId !== null || !currentQuestion) return; // Prevent multiple clicks
 
         const now = Date.now();
         const timeTaken = now - startTime;
-        const correct = option === currentQuestion?.answer;
+        const correct = checkAnswer(currentQuestion, optionId);
 
-        setSelectedOption(option);
+        setSelectedOptionId(optionId);
         setIsCorrect(correct);
+        updateDifficulty(category, correct);
 
         if (settings.soundEnabled) {
             if (correct) playSuccessSound();
@@ -132,7 +140,7 @@ export function QuizGame({ category, config, onComplete }: QuizGameProps) {
 
     // Power-up Handlers
     const useFreeze = () => {
-        if (inventory.freeze > 0 && !isFrozen && selectedOption === null) {
+        if (inventory.freeze > 0 && !isFrozen && selectedOptionId === null) {
             consumeItem('freeze');
             setIsFrozen(true);
             setTimeout(() => setIsFrozen(false), 10000); // Freeze for 10s
@@ -140,16 +148,19 @@ export function QuizGame({ category, config, onComplete }: QuizGameProps) {
     };
 
     const useExtraTime = () => {
-        if (inventory.extraTime > 0 && selectedOption === null) {
+        if (inventory.extraTime > 0 && selectedOptionId === null) {
             consumeItem('extraTime');
             setTimeLeft(prev => prev + 10);
         }
     };
 
     const useFiftyFifty = () => {
-        if (inventory.fiftyFifty > 0 && selectedOption === null && currentQuestion && disabledOptions.length === 0) {
+        if (inventory.fiftyFifty > 0 && selectedOptionId === null && currentQuestion && disabledOptions.length === 0) {
             consumeItem('fiftyFifty');
-            const wrongOptions = (currentQuestion.options || []).filter(o => o !== currentQuestion.answer);
+            const wrongOptions = (currentQuestion.options || [])
+                .filter(o => o.id !== currentQuestion.correctOptionId)
+                .map(o => o.id);
+
             // Shuffle and take 2
             const toRemove = wrongOptions.sort(() => 0.5 - Math.random()).slice(0, 2);
             setDisabledOptions(toRemove);
@@ -232,35 +243,35 @@ export function QuizGame({ category, config, onComplete }: QuizGameProps) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <AnimatePresence mode="popLayout">
                             {currentQuestion.options && currentQuestion.options.map((option, idx) => {
-                                const isDisabled = disabledOptions.includes(option);
+                                const isDisabled = disabledOptions.includes(option.id);
                                 if (isDisabled) return null;
 
                                 return (
                                     <motion.div
-                                        key={`${currentQuestion.id}-${idx}`}
+                                        key={`${currentQuestion.id}-${option.id}`}
                                         initial={{ opacity: 0, scale: 0.9 }}
                                         animate={{ opacity: 1, scale: 1 }}
                                         transition={{ delay: idx * 0.05 }}
                                     >
                                         <Button
                                             variant={
-                                                selectedOption === option
+                                                selectedOptionId === option.id
                                                     ? isCorrect
                                                         ? "default"
                                                         : "destructive"
-                                                    : selectedOption !== null && option === currentQuestion.answer
+                                                    : selectedOptionId !== null && option.id === currentQuestion.correctOptionId
                                                         ? "default"
                                                         : "outline"
                                             }
-                                            className={`w-full h-20 text-2xl font-bold transition-all duration-200 relative overflow-hidden group ${selectedOption !== null && option === currentQuestion.answer
+                                            className={`w-full h-20 text-2xl font-bold transition-all duration-200 relative overflow-hidden group ${selectedOptionId !== null && option.id === currentQuestion.correctOptionId
                                                 ? "bg-green-500 hover:bg-green-600 text-white border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.5)]"
                                                 : "hover:scale-[1.02] hover:bg-primary/5 hover:border-primary/50"
-                                                } ${selectedOption === option && !isCorrect ? "animate-shake" : ""}`}
-                                            onClick={() => handleAnswer(option)}
-                                            disabled={selectedOption !== null}
+                                                } ${selectedOptionId === option.id && !isCorrect ? "animate-shake" : ""}`}
+                                            onClick={() => handleAnswer(option.id)}
+                                            disabled={selectedOptionId !== null}
                                         >
-                                            <span className="relative z-10">{option}</span>
-                                            {selectedOption === option && (
+                                            <span className="relative z-10">{option.label}</span>
+                                            {selectedOptionId === option.id && (
                                                 <div className="absolute right-4 top-1/2 -translate-y-1/2">
                                                     {isCorrect ? (
                                                         <CheckCircle className="h-6 w-6 animate-bounce" />
@@ -283,7 +294,7 @@ export function QuizGame({ category, config, onComplete }: QuizGameProps) {
                             size="sm"
                             className="gap-2"
                             onClick={useFreeze}
-                            disabled={inventory.freeze <= 0 || isFrozen || selectedOption !== null}
+                            disabled={inventory.freeze <= 0 || isFrozen || selectedOptionId !== null}
                         >
                             <Snowflake className={`h-4 w-4 ${isFrozen ? 'text-blue-400 animate-pulse' : ''}`} />
                             <span className="text-xs font-bold">{inventory.freeze}</span>
@@ -293,7 +304,7 @@ export function QuizGame({ category, config, onComplete }: QuizGameProps) {
                             size="sm"
                             className="gap-2"
                             onClick={useExtraTime}
-                            disabled={inventory.extraTime <= 0 || selectedOption !== null}
+                            disabled={inventory.extraTime <= 0 || selectedOptionId !== null}
                         >
                             <Clock className="h-4 w-4" />
                             <span className="text-xs font-bold">{inventory.extraTime}</span>
@@ -303,7 +314,7 @@ export function QuizGame({ category, config, onComplete }: QuizGameProps) {
                             size="sm"
                             className="gap-2"
                             onClick={useFiftyFifty}
-                            disabled={inventory.fiftyFifty <= 0 || disabledOptions.length > 0 || selectedOption !== null}
+                            disabled={inventory.fiftyFifty <= 0 || disabledOptions.length > 0 || selectedOptionId !== null}
                         >
                             <Divide className="h-4 w-4" />
                             <span className="text-xs font-bold">{inventory.fiftyFifty}</span>
@@ -313,7 +324,7 @@ export function QuizGame({ category, config, onComplete }: QuizGameProps) {
             </Card>
 
             <AnimatePresence>
-                {selectedOption !== null && (
+                {selectedOptionId !== null && (
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}

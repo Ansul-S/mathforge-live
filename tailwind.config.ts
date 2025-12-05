@@ -50,6 +50,18 @@ const config: Config = {
                     DEFAULT: "hsl(var(--card))",
                     foreground: "hsl(var(--card-foreground))",
                 },
+                sakura: {
+                    bg: "hsl(var(--sakura-bg))",
+                    primary: "hsl(var(--sakura-primary))",
+                    accent: "hsl(var(--sakura-accent))",
+                    text: "hsl(var(--sakura-text))",
+                },
+                dragon: {
+                    bg: "hsl(var(--dragon-bg))",
+                    primary: "hsl(var(--dragon-primary))",
+                    accent: "hsl(var(--dragon-accent))",
+                    text: "hsl(var(--dragon-text))",
+                },
             },
             borderRadius: {
                 lg: "var(--radius)",

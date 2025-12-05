@@ -53,7 +53,8 @@ export function SurvivalGame() {
         e?.preventDefault();
         if (!userAnswer.trim() || isGameOver) return;
 
-        const correctVal = String(currentQuestion?.answer).toLowerCase().trim();
+        const correctOption = currentQuestion?.options?.find(o => o.id === currentQuestion.correctOptionId);
+        const correctVal = String(correctOption?.value || '').toLowerCase().trim();
         const userVal = userAnswer.toLowerCase().trim();
         const correct = userVal === correctVal;
 
@@ -93,7 +94,7 @@ export function SurvivalGame() {
                         <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-left">
                             <p className="text-sm text-red-400 font-bold mb-1">You missed:</p>
                             <p className="text-lg">{currentQuestion.question}</p>
-                            <p className="text-muted-foreground">Correct Answer: <span className="text-foreground font-bold">{currentQuestion.answer}</span></p>
+                            <p className="text-muted-foreground">Correct Answer: <span className="text-foreground font-bold">{currentQuestion?.options?.find(o => o.id === currentQuestion.correctOptionId)?.value}</span></p>
                         </div>
                     )}
 

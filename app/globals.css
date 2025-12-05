@@ -72,26 +72,28 @@
 @layer base {
   :root {
     /* Sakura Realm (Light Mode) */
-    --background: 330 40% 96%;
-    /* #f7e6ee converted to HSL approx */
-    --foreground: 14 23% 29%;
-    /* #5d4037 */
+    /* Background: Soft Pink #f7e6ee -> HSL(332, 54%, 94%) */
+    --background: 332 54% 94%;
 
+    /* Foreground: Soft Brown/Dark #5d4037 -> HSL(14, 23%, 29%) */
+    --foreground: 14 23% 29%;
+
+    /* Card: White with slight tint */
     --card: 0 0% 100%;
     --card-foreground: 14 23% 29%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 14 23% 29%;
 
+    /* Primary: Cherry Blossom Accent #e44372 -> HSL(342, 76%, 58%) */
     --primary: 342 76% 58%;
-    /* #e44372 */
     --primary-foreground: 0 0% 100%;
 
+    /* Secondary: Light Gold #f5d48e -> HSL(38, 83%, 76%) */
     --secondary: 38 83% 76%;
-    /* #f5d48e */
     --secondary-foreground: 14 23% 29%;
 
-    --muted: 330 20% 90%;
+    --muted: 332 30% 90%;
     --muted-foreground: 14 10% 50%;
 
     --accent: 342 76% 58%;
@@ -100,33 +102,46 @@
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 330 20% 90%;
-    --input: 330 20% 90%;
+    --border: 332 30% 85%;
+    --input: 332 30% 85%;
     --ring: 342 76% 58%;
 
     --radius: 1rem;
     /* Rounded-xl */
+
+    /* Specific Realm Colors (Available in both modes) */
+    --sakura-bg: 332 54% 94%;
+    --sakura-primary: 342 76% 58%;
+    --sakura-accent: 38 83% 76%;
+    --sakura-text: 14 23% 29%;
+
+    --dragon-bg: 220 35% 7%;
+    --dragon-primary: 0 66% 55%;
+    --dragon-accent: 29 93% 56%;
+    --dragon-text: 210 20% 98%;
   }
 
   .dark {
     /* Dragon Realm (Dark Mode) */
+    /* Background: Deep Navy #0b0f17 -> HSL(220, 35%, 7%) */
     --background: 220 35% 7%;
-    /* #0b0f17 */
-    --foreground: 210 20% 98%;
-    /* #e2e8f0 */
 
-    --card: 220 35% 10%;
+    /* Foreground: Off-white #e2e8f0 -> HSL(210, 20%, 98%) */
+    --foreground: 210 20% 98%;
+
+    /* Card: Charcoal Black #0a0a0a -> HSL(0, 0%, 4%) */
+    --card: 0 0% 4%;
     --card-foreground: 210 20% 98%;
 
-    --popover: 220 35% 10%;
+    --popover: 0 0% 4%;
     --popover-foreground: 210 20% 98%;
 
+    /* Primary: Dragon Red #d64040 -> HSL(0, 66%, 55%) */
     --primary: 0 66% 55%;
-    /* #d64040 */
     --primary-foreground: 0 0% 100%;
 
+    /* Secondary: Ember Orange #f78c29 -> HSL(29, 93%, 56%) */
     --secondary: 29 93% 56%;
-    /* #f78c29 */
     --secondary-foreground: 0 0% 100%;
 
     --muted: 220 30% 15%;

@@ -72,7 +72,8 @@ export function SprintGame() {
         e?.preventDefault();
         if (!userAnswer.trim() || isGameOver) return;
 
-        const correctVal = String(currentQuestion?.answer).toLowerCase().trim();
+        const correctOption = currentQuestion?.options?.find(o => o.id === currentQuestion.correctOptionId);
+        const correctVal = String(correctOption?.value || '').toLowerCase().trim();
         const userVal = userAnswer.toLowerCase().trim();
         const correct = userVal === correctVal;
 
@@ -154,8 +155,8 @@ export function SprintGame() {
             </div>
 
             <Card className={`overflow-hidden glass-card transition-colors duration-200 ${feedback === 'correct' ? 'border-green-500/50 bg-green-500/10' :
-                    feedback === 'wrong' ? 'border-red-500/50 bg-red-500/10' :
-                        'border-white/10'
+                feedback === 'wrong' ? 'border-red-500/50 bg-red-500/10' :
+                    'border-white/10'
                 }`}>
                 <CardHeader className="py-12 text-center relative overflow-hidden">
                     <div className="absolute top-2 right-2 text-xs font-mono text-muted-foreground opacity-50 uppercase">

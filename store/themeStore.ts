@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 
 type Realm = 'sakura' | 'dragon';
 
@@ -9,15 +9,36 @@ interface ThemeState {
     setRealm: (realm: Realm) => void;
 }
 
-export const useThemeStore = create<ThemeState>()(
-    persist(
-        (set) => ({
-            realm: 'sakura', // Default to Light/Sakura
-            toggleRealm: () => set((state) => ({ realm: state.realm === 'sakura' ? 'dragon' : 'sakura' })),
-            setRealm: (realm) => set({ realm }),
-        }),
-        {
-            name: 'mathforge-theme-storage',
-        }
-    )
-);
+export function useThemeStore(): ThemeState {
+    const { resolvedTheme, setTheme } = useTheme();
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    // Default to 'sakura' (light) during SSR to match initial HTML
+    if (!mounted) {
+        return {
+            realm: 'sakura',
+            toggleRealm: () => { },
+            setRealm: () => { },
+        };
+    }
+
+    const realm: Realm = resolvedTheme === 'dark' ? 'dragon' : 'sakura';
+
+    const toggleRealm = () => {
+        setTheme(realm === 'sakura' ? 'dark' : 'light');
+    };
+
+    const setRealm = (newRealm: Realm) => {
+        setTheme(newRealm === 'dragon' ? 'dark' : 'light');
+    };
+
+    return {
+        realm,
+        toggleRealm,
+        setRealm,
+    };
+}

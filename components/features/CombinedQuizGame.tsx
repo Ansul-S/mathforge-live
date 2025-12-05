@@ -72,7 +72,9 @@ export function CombinedQuizGame({ config, onComplete }: CombinedQuizGameProps) 
 
         // Randomly select a category
         const randomCategory = categories[Math.floor(Math.random() * categories.length)];
-        const q = generateQuizQuestion(randomCategory, 4, config); // Options count doesn't matter for input mode
+        // For mixed quiz, we can use a default difficulty or track it separately if needed
+        // Here we'll use level 3 for a balanced challenge
+        const q = generateQuizQuestion(randomCategory, 4, config, 3);
 
         setCurrentQuestion(q);
         setUserAnswer('');
@@ -97,7 +99,11 @@ export function CombinedQuizGame({ config, onComplete }: CombinedQuizGameProps) 
         const timeTaken = now - startTime;
 
         // Normalize answer for comparison (handle strings/numbers)
-        const correctVal = String(currentQuestion?.answer).toLowerCase().trim();
+        // Since we don't have direct access to the raw answer value easily in the new structure without parsing options,
+        // we'll rely on the correctOptionId to find the value.
+        const correctOption = currentQuestion?.options?.find(o => o.id === currentQuestion.correctOptionId);
+        const correctVal = String(correctOption?.value || '').toLowerCase().trim();
+
         const userVal = userAnswer.toLowerCase().trim();
         const correct = userVal === correctVal;
 
@@ -182,10 +188,10 @@ export function CombinedQuizGame({ config, onComplete }: CombinedQuizGameProps) 
                                 disabled={isSubmitted}
                                 placeholder="Type your answer..."
                                 className={`w-full h-16 text-center text-2xl font-bold rounded-xl bg-black/20 border-2 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all ${isSubmitted
-                                        ? isCorrect
-                                            ? "border-green-500 text-green-500 bg-green-500/10"
-                                            : "border-red-500 text-red-500 bg-red-500/10"
-                                        : "border-white/10 focus:border-primary"
+                                    ? isCorrect
+                                        ? "border-green-500 text-green-500 bg-green-500/10"
+                                        : "border-red-500 text-red-500 bg-red-500/10"
+                                    : "border-white/10 focus:border-primary"
                                     }`}
                                 autoFocus
                             />
@@ -211,7 +217,9 @@ export function CombinedQuizGame({ config, onComplete }: CombinedQuizGameProps) 
                                                 <XCircle className="h-5 w-5" /> Incorrect
                                             </div>
                                             <div className="text-muted-foreground">
-                                                Answer: <span className="text-foreground font-bold">{currentQuestion.answer}</span>
+                                                Answer: <span className="text-foreground font-bold">
+                                                    {currentQuestion.options?.find(o => o.id === currentQuestion.correctOptionId)?.label}
+                                                </span>
                                             </div>
                                         </div>
                                     )}
