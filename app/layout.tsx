@@ -9,9 +9,12 @@ import { cn } from "@/lib/utils";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Mathforge",
-  description: "Learn tables, squares, powers & reciprocals the fun way.",
+  title: "MathForge | Master Mental Math",
+  description: "Forge your mind with Tables, Squares, Cubes, and Mental Math challenges. Choose your path: Sakura Realm or Dragon Citadel.",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export const viewport = {
@@ -23,7 +26,9 @@ export const viewport = {
 };
 
 
-import { AuthProvider } from "@/context/AuthContext";
+
+import { ThemeProvider } from "@/components/ui/ThemeProvider";
+import { RealmLayout } from "@/components/layout/RealmLayout";
 
 export default function RootLayout({
   children,
@@ -32,15 +37,23 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} min-h-screen bg-background text-foreground antialiased transition-colors duration-300`}>
-        <AuthProvider>
+      <body className={`${inter.className} min-h-screen bg-background text-foreground antialiased transition-colors duration-300 flex flex-col`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
           <GameProvider>
-            <Navbar />
-            <main className="container mx-auto px-4 py-8">
-              {children}
-            </main>
+            <RealmLayout>
+              <Navbar />
+              <main className="container mx-auto px-4 py-8 flex-grow">
+                {children}
+              </main>
+              <Footer />
+            </RealmLayout>
           </GameProvider>
-        </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

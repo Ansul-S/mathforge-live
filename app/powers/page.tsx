@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ModeSelector } from '@/components/ui/ModeSelector';
 import { getAllPowers } from '@/lib/math-utils';
 import { QuizGame } from '@/components/features/QuizGame';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { BookOpen, Brain } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { BookOpen, Brain, ArrowLeft } from 'lucide-react';
+import { TierSelection, TIERS, Tier } from '@/components/game/TierSelection';
+import { useGame } from '@/context/GameContext';
 
 const modes = [
     { id: 'learn', label: 'Learn', icon: <BookOpen className="h-4 w-4" /> },
@@ -19,7 +20,14 @@ const bases = [2, 3, 5, 6, 7];
 export default function PowersPage() {
     const [mode, setMode] = useState('learn');
     const [activeBase, setActiveBase] = useState(2);
-    const [quizActive, setQuizActive] = useState(false);
+    const { currentTier, setTier } = useGame();
+
+    // Reset tier when leaving quiz mode
+    useEffect(() => {
+        if (mode !== 'quiz') {
+            setTier(null);
+        }
+    }, [mode, setTier]);
 
     const allPowers = getAllPowers();
     // @ts-ignore
@@ -31,7 +39,6 @@ export default function PowersPage() {
                 <h1 className="text-3xl font-bold tracking-tight">Powers</h1>
                 <ModeSelector modes={modes} currentMode={mode} onSelect={(m) => {
                     setMode(m);
-                    setQuizActive(false);
                 }} />
             </div>
 
@@ -64,18 +71,33 @@ export default function PowersPage() {
             )}
 
             {mode === 'quiz' && (
-                !quizActive ? (
-                    <div className="text-center py-20">
-                        <h2 className="text-2xl font-bold mb-4">Power Up Your Brain</h2>
-                        <p className="text-muted-foreground mb-6">Test your knowledge of powers for bases 2, 3, 5, 6, and 7.</p>
-                        <Button size="lg" onClick={() => setQuizActive(true)}>Start Quiz</Button>
+                !currentTier ? (
+                    <div className="space-y-6">
+                        <div className="text-center space-y-2">
+                            <h2 className="text-2xl font-bold">Select Challenge Tier</h2>
+                            <p className="text-muted-foreground">Choose your path, initiate.</p>
+                        </div>
+                        <TierSelection onSelect={setTier} />
                     </div>
                 ) : (
-                    <QuizGame
-                        category="powers"
-                        config={{ totalQuestions: 10, timeLimit: 15 }}
-                        onComplete={() => setQuizActive(false)}
-                    />
+                    <div className="space-y-6">
+                        <div className="flex items-center justify-between">
+                            <Button variant="ghost" onClick={() => setTier(null)}>
+                                <ArrowLeft className="mr-2 h-4 w-4" /> Change Tier
+                            </Button>
+                            <div className="font-bold text-primary uppercase tracking-wider">
+                                {TIERS[currentTier].name}
+                            </div>
+                        </div>
+                        <QuizGame
+                            category="powers"
+                            config={{
+                                totalQuestions: 10,
+                                timeLimit: TIERS[currentTier].timeLimit
+                            }}
+                            onComplete={() => setTier(null)}
+                        />
+                    </div>
                 )
             )}
         </div>

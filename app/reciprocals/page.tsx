@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ModeSelector } from '@/components/ui/ModeSelector';
 import { getReciprocals } from '@/lib/math-utils';
 import { QuizGame } from '@/components/features/QuizGame';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { BookOpen, Brain, Search } from 'lucide-react';
+import { BookOpen, Brain, Search, ArrowLeft } from 'lucide-react';
+import { TierSelection, TIERS, Tier } from '@/components/game/TierSelection';
+import { useGame } from '@/context/GameContext';
 
 const modes = [
     { id: 'learn', label: 'Learn', icon: <BookOpen className="h-4 w-4" /> },
@@ -15,8 +17,15 @@ const modes = [
 
 export default function ReciprocalsPage() {
     const [mode, setMode] = useState('learn');
-    const [quizActive, setQuizActive] = useState(false);
     const [search, setSearch] = useState('');
+    const { currentTier, setTier } = useGame();
+
+    // Reset tier when leaving quiz mode
+    useEffect(() => {
+        if (mode !== 'quiz') {
+            setTier(null);
+        }
+    }, [mode, setTier]);
 
     const reciprocalsData = getReciprocals(30);
 
@@ -32,7 +41,6 @@ export default function ReciprocalsPage() {
                 <h1 className="text-3xl font-bold tracking-tight">Reciprocals (1/1 - 1/30)</h1>
                 <ModeSelector modes={modes} currentMode={mode} onSelect={(m) => {
                     setMode(m);
-                    setQuizActive(false);
                 }} />
             </div>
 
@@ -73,18 +81,33 @@ export default function ReciprocalsPage() {
             )}
 
             {mode === 'quiz' && (
-                !quizActive ? (
-                    <div className="text-center py-20">
-                        <h2 className="text-2xl font-bold mb-4">Master Fractions & Decimals</h2>
-                        <p className="text-muted-foreground mb-6">Test your ability to convert fractions to decimals and percentages.</p>
-                        <Button size="lg" onClick={() => setQuizActive(true)}>Start Quiz</Button>
+                !currentTier ? (
+                    <div className="space-y-6">
+                        <div className="text-center space-y-2">
+                            <h2 className="text-2xl font-bold">Select Challenge Tier</h2>
+                            <p className="text-muted-foreground">Choose your path, initiate.</p>
+                        </div>
+                        <TierSelection onSelect={setTier} />
                     </div>
                 ) : (
-                    <QuizGame
-                        category="reciprocals"
-                        config={{ totalQuestions: 10, timeLimit: 20 }}
-                        onComplete={() => setQuizActive(false)}
-                    />
+                    <div className="space-y-6">
+                        <div className="flex items-center justify-between">
+                            <Button variant="ghost" onClick={() => setTier(null)}>
+                                <ArrowLeft className="mr-2 h-4 w-4" /> Change Tier
+                            </Button>
+                            <div className="font-bold text-primary uppercase tracking-wider">
+                                {TIERS[currentTier].name}
+                            </div>
+                        </div>
+                        <QuizGame
+                            category="reciprocals"
+                            config={{
+                                totalQuestions: 10,
+                                timeLimit: TIERS[currentTier].timeLimit
+                            }}
+                            onComplete={() => setTier(null)}
+                        />
+                    </div>
                 )
             )}
         </div>

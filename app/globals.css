@@ -32,30 +32,17 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
 
-  --animate-accordion-down: accordion-down 0.2s ease-out;
-  --animate-accordion-up: accordion-up 0.2s ease-out;
-  --animate-float: float 6s ease-in-out infinite;
-  --animate-shake: shake 0.4s cubic-bezier(.36, .07, .19, .97) both;
+  /* Sakura Realm (Light) */
+  --color-sakura-bg: #f7e6ee;
+  --color-sakura-primary: #e44372;
+  --color-sakura-accent: #f5d48e;
+  --color-sakura-text: #5d4037;
 
-  @keyframes accordion-down {
-    from {
-      height: 0;
-    }
-
-    to {
-      height: var(--radix-accordion-content-height);
-    }
-  }
-
-  @keyframes accordion-up {
-    from {
-      height: var(--radix-accordion-content-height);
-    }
-
-    to {
-      height: 0;
-    }
-  }
+  /* Dragon Realm (Dark) */
+  --color-dragon-bg: #0b0f17;
+  --color-dragon-primary: #d64040;
+  --color-dragon-accent: #f78c29;
+  --color-dragon-text: #e2e8f0;
 
   @keyframes float {
 
@@ -69,86 +56,91 @@
     }
   }
 
-  @keyframes shake {
+  @keyframes pulse-glow {
 
     0%,
     100% {
-      transform: translateX(0);
+      box-shadow: 0 0 10px var(--color-primary);
     }
 
-    25% {
-      transform: translateX(-5px);
-    }
-
-    75% {
-      transform: translateX(5px);
+    50% {
+      box-shadow: 0 0 20px var(--color-primary);
     }
   }
 }
 
 @layer base {
   :root {
-    /* Light Mode Colors */
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
+    /* Sakura Realm (Light Mode) */
+    --background: 330 40% 96%;
+    /* #f7e6ee converted to HSL approx */
+    --foreground: 14 23% 29%;
+    /* #5d4037 */
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 14 23% 29%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 14 23% 29%;
 
-    --primary: 221 83% 53%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 342 76% 58%;
+    /* #e44372 */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 38 83% 76%;
+    /* #f5d48e */
+    --secondary-foreground: 14 23% 29%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 330 20% 90%;
+    --muted-foreground: 14 10% 50%;
 
-    --accent: 262 83% 58%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 342 76% 58%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221 83% 53%;
+    --border: 330 20% 90%;
+    --input: 330 20% 90%;
+    --ring: 342 76% 58%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;
+    /* Rounded-xl */
   }
 
   .dark {
-    /* Dark Mode Colors (Original) */
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
+    /* Dragon Realm (Dark Mode) */
+    --background: 220 35% 7%;
+    /* #0b0f17 */
+    --foreground: 210 20% 98%;
+    /* #e2e8f0 */
 
-    --card: 222 47% 11%;
-    --card-foreground: 210 40% 98%;
+    --card: 220 35% 10%;
+    --card-foreground: 210 20% 98%;
 
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 220 35% 10%;
+    --popover-foreground: 210 20% 98%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 11%;
+    --primary: 0 66% 55%;
+    /* #d64040 */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217 32% 17%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 29 93% 56%;
+    /* #f78c29 */
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 217 32% 17%;
+    --muted: 220 30% 15%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 262 83% 58%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 0 66% 55%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62% 30%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 217 32% 17%;
-    --input: 217 32% 17%;
-    --ring: 217 91% 60%;
+    --border: 220 30% 15%;
+    --input: 220 30% 15%;
+    --ring: 0 66% 55%;
   }
 }
 
@@ -221,14 +213,16 @@
 /* Glassmorphism Utilities */
 .glass {
   background-color: rgba(var(--background), 0.6);
-  backdrop-filter: blur(16px);
+  backdrop-filter: blur(8px);
+  /* Reduced from 16px */
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
 }
 
 .glass-card {
   background-color: rgba(var(--card), 0.3);
-  backdrop-filter: blur(24px);
+  backdrop-filter: blur(12px);
+  /* Reduced from 24px */
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);

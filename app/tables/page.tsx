@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ModeSelector } from '@/components/ui/ModeSelector';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input'; // Need to create Input component
 import { getTable } from '@/lib/math-utils';
 import { QuizGame } from '@/components/features/QuizGame';
 import { Flashcard } from '@/components/features/Flashcard';
 import { BookOpen, Zap, Brain, ArrowLeft, ArrowRight } from 'lucide-react';
+import { TierSelection, TIERS, Tier } from '@/components/game/TierSelection';
+import { useGame } from '@/context/GameContext';
 
 const modes = [
     { id: 'learn', label: 'Learn', icon: <BookOpen className="h-4 w-4" /> },
@@ -21,6 +22,15 @@ export default function TablesPage() {
     const [selectedTable, setSelectedTable] = useState<number>(7);
     const [tableLimit, setTableLimit] = useState<number>(10);
     const [quizConfig, setQuizConfig] = useState<any>(null);
+    const { currentTier, setTier } = useGame();
+
+    // Reset tier when leaving quiz mode
+    useEffect(() => {
+        if (mode !== 'quiz') {
+            setTier(null);
+            setQuizConfig(null);
+        }
+    }, [mode, setTier]);
 
     // Learn Mode Components
     const TableView = () => {
@@ -116,33 +126,72 @@ export default function TablesPage() {
     // Quiz Mode Setup
     const QuizSetup = () => {
         const startQuiz = (type: 'specific' | 'range' | 'random') => {
+            if (!currentTier) return;
+
+            const tierConfig = TIERS[currentTier];
             setQuizConfig({
                 type,
                 table: type === 'specific' ? selectedTable : undefined,
                 totalQuestions: 10,
-                timeLimit: 10, // 10 seconds per question
+                timeLimit: tierConfig.timeLimit,
             });
         };
 
-        return (
-            <div className="grid gap-6 max-w-2xl mx-auto">
-                <Card className="cursor-pointer hover:border-primary transition-colors" onClick={() => startQuiz('specific')}>
-                    <CardHeader>
-                        <CardTitle>Practice Table of {selectedTable}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        Focus on mastering the table of {selectedTable}.
-                    </CardContent>
-                </Card>
+        if (!currentTier) {
+            return (
+                <div className="space-y-6">
+                    <div className="text-center space-y-2">
+                        <h2 className="text-2xl font-bold">Select Challenge Tier</h2>
+                        <p className="text-muted-foreground">Choose your path, initiate.</p>
+                    </div>
+                    <TierSelection onSelect={setTier} />
+                </div>
+            );
+        }
 
-                <Card className="cursor-pointer hover:border-primary transition-colors" onClick={() => startQuiz('random')}>
-                    <CardHeader>
-                        <CardTitle>Mixed Practice (1-20)</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        Random questions from tables 1 to 20.
-                    </CardContent>
-                </Card>
+        return (
+            <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <Button variant="ghost" onClick={() => setTier(null)}>
+                        <ArrowLeft className="mr-2 h-4 w-4" /> Change Tier
+                    </Button>
+                    <div className="font-bold text-primary uppercase tracking-wider">
+                        {TIERS[currentTier].name}
+                    </div>
+                </div>
+
+                <div className="flex items-center justify-center gap-4 mb-6">
+                    <Button variant="outline" size="icon" onClick={() => setSelectedTable(Math.max(1, selectedTable - 1))}>
+                        <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                    <div className="text-center">
+                        <div className="text-sm text-muted-foreground">Selected Table</div>
+                        <div className="text-3xl font-bold">{selectedTable}</div>
+                    </div>
+                    <Button variant="outline" size="icon" onClick={() => setSelectedTable(Math.min(50, selectedTable + 1))}>
+                        <ArrowRight className="h-4 w-4" />
+                    </Button>
+                </div>
+
+                <div className="grid gap-6 max-w-2xl mx-auto">
+                    <Card className="cursor-pointer hover:border-primary transition-colors" onClick={() => startQuiz('specific')}>
+                        <CardHeader>
+                            <CardTitle>Practice Table of {selectedTable}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            Focus on mastering the table of {selectedTable}.
+                        </CardContent>
+                    </Card>
+
+                    <Card className="cursor-pointer hover:border-primary transition-colors" onClick={() => startQuiz('random')}>
+                        <CardHeader>
+                            <CardTitle>Mixed Practice (1-20)</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            Random questions from tables 1 to 20.
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         );
     };
@@ -169,21 +218,7 @@ export default function TablesPage() {
                         onComplete={() => setQuizConfig(null)}
                     />
                 ) : (
-                    <div className="space-y-6">
-                        <div className="flex items-center justify-center gap-4 mb-6">
-                            <Button variant="outline" size="icon" onClick={() => setSelectedTable(Math.max(1, selectedTable - 1))}>
-                                <ArrowLeft className="h-4 w-4" />
-                            </Button>
-                            <div className="text-center">
-                                <div className="text-sm text-muted-foreground">Selected Table</div>
-                                <div className="text-3xl font-bold">{selectedTable}</div>
-                            </div>
-                            <Button variant="outline" size="icon" onClick={() => setSelectedTable(Math.min(50, selectedTable + 1))}>
-                                <ArrowRight className="h-4 w-4" />
-                            </Button>
-                        </div>
-                        <QuizSetup />
-                    </div>
+                    <QuizSetup />
                 )
             )}
         </div>

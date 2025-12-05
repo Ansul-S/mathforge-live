@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ModeSelector } from '@/components/ui/ModeSelector';
 import { getCubes } from '@/lib/math-utils';
 import { QuizGame } from '@/components/features/QuizGame';
 import { Flashcard } from '@/components/features/Flashcard';
 import { LearnList } from '@/components/features/LearnList';
-import { BookOpen, Zap, Brain } from 'lucide-react';
+import { BookOpen, Zap, Brain, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { TierSelection, TIERS, Tier } from '@/components/game/TierSelection';
+import { useGame } from '@/context/GameContext';
 
 const modes = [
     { id: 'learn', label: 'Learn', icon: <BookOpen className="h-4 w-4" /> },
@@ -17,7 +19,14 @@ const modes = [
 
 export default function CubesPage() {
     const [mode, setMode] = useState('learn');
-    const [quizActive, setQuizActive] = useState(false);
+    const { currentTier, setTier } = useGame();
+
+    // Reset tier when leaving quiz mode
+    useEffect(() => {
+        if (mode !== 'quiz') {
+            setTier(null);
+        }
+    }, [mode, setTier]);
 
     const cubesData = getCubes(20).map(item => ({
         id: item.n,
@@ -57,7 +66,6 @@ export default function CubesPage() {
                 <h1 className="text-3xl font-bold tracking-tight">Cubes (1-20)</h1>
                 <ModeSelector modes={modes} currentMode={mode} onSelect={(m) => {
                     setMode(m);
-                    setQuizActive(false);
                 }} />
             </div>
 
@@ -66,17 +74,33 @@ export default function CubesPage() {
             {mode === 'flashcard' && <FlashcardView />}
 
             {mode === 'quiz' && (
-                !quizActive ? (
-                    <div className="text-center py-20">
-                        <h2 className="text-2xl font-bold mb-4">Ready to test your knowledge?</h2>
-                        <Button size="lg" onClick={() => setQuizActive(true)}>Start Quiz</Button>
+                !currentTier ? (
+                    <div className="space-y-6">
+                        <div className="text-center space-y-2">
+                            <h2 className="text-2xl font-bold">Select Challenge Tier</h2>
+                            <p className="text-muted-foreground">Choose your path, initiate.</p>
+                        </div>
+                        <TierSelection onSelect={setTier} />
                     </div>
                 ) : (
-                    <QuizGame
-                        category="cubes"
-                        config={{ totalQuestions: 10, timeLimit: 15 }}
-                        onComplete={() => setQuizActive(false)}
-                    />
+                    <div className="space-y-6">
+                        <div className="flex items-center justify-between">
+                            <Button variant="ghost" onClick={() => setTier(null)}>
+                                <ArrowLeft className="mr-2 h-4 w-4" /> Change Tier
+                            </Button>
+                            <div className="font-bold text-primary uppercase tracking-wider">
+                                {TIERS[currentTier].name}
+                            </div>
+                        </div>
+                        <QuizGame
+                            category="cubes"
+                            config={{
+                                totalQuestions: 10,
+                                timeLimit: TIERS[currentTier].timeLimit
+                            }}
+                            onComplete={() => setTier(null)}
+                        />
+                    </div>
                 )
             )}
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+
 
 interface UserStats {
     xp: number;
@@ -27,9 +27,14 @@ interface Settings {
     vibrationEnabled: boolean;
 }
 
+import { useProgressStore } from '@/store/progressStore';
+import { TIERS, Tier } from '@/components/game/TierSelection';
+
 interface GameContextType {
     stats: UserStats;
     settings: Settings;
+    currentTier: Tier | null;
+    setTier: (tier: Tier | null) => void;
     addXP: (amount: number) => void;
     updateStreak: () => void;
     recordAnswer: (category: string, isCorrect: boolean, timeTaken: number, questionId?: string) => void;
@@ -69,7 +74,10 @@ const GameContext = createContext<GameContextType | undefined>(undefined);
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [stats, setStats] = useState<UserStats>(defaultStats);
     const [settings, setSettings] = useState<Settings>(defaultSettings);
+    const [currentTier, setTier] = useState<Tier | null>(null);
     const [isLoaded, setIsLoaded] = useState(false);
+
+    const { addPetals, addEmbers } = useProgressStore();
 
     // Load from localStorage on mount
     useEffect(() => {
@@ -91,51 +99,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoaded(true);
     }, []);
 
-    // Sync with Supabase on login
-    useEffect(() => {
-        const syncWithSupabase = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.user) {
-                // Fetch remote stats
-                const { data: remoteProfile } = await supabase
-                    .from('profiles')
-                    .select('stats')
-                    .eq('id', session.user.id)
-                    .single();
-
-                if (remoteProfile?.stats) {
-                    // Merge remote stats with local (remote takes precedence if newer, but for now just overwrite local)
-                    // Ideally we'd do a smarter merge, but this is a simple start
-                    setStats(prev => ({ ...prev, ...remoteProfile.stats }));
-                }
-            }
-        };
-        syncWithSupabase();
-    }, []);
-
-    // Save to localStorage and Supabase whenever state changes
+    // Save to localStorage whenever state changes
     useEffect(() => {
         if (isLoaded) {
             localStorage.setItem('mathforge_stats', JSON.stringify(stats));
-
-            // Sync to Supabase if logged in
-            supabase.auth.getSession().then(({ data: { session } }) => {
-                if (session?.user) {
-                    supabase
-                        .from('profiles')
-                        .upsert({
-                            id: session.user.id,
-                            email: session.user.email,
-                            full_name: session.user.user_metadata.full_name,
-                            avatar_url: session.user.user_metadata.avatar_url,
-                            stats,
-                            updated_at: new Date().toISOString()
-                        })
-                        .then(({ error }) => {
-                            if (error) console.error('Error syncing to Supabase:', error);
-                        });
-                }
-            });
         }
     }, [stats, isLoaded]);
 
@@ -192,6 +159,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const recordAnswer = (category: string, isCorrect: boolean, timeTaken: number, questionId?: string) => {
+        // Award Petals/Embers based on Tier if correct
+        if (isCorrect && currentTier) {
+            const tierConfig = TIERS[currentTier];
+            if (tierConfig.reward.type === 'petals') {
+                addPetals(tierConfig.reward.amount);
+            } else {
+                addEmbers(tierConfig.reward.amount);
+            }
+        }
+
         setStats((prev) => {
             const catStats = prev.categoryStats[category] || { attempted: 0, correct: 0 };
 
@@ -247,6 +224,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         <GameContext.Provider value={{
             stats,
             settings,
+            currentTier,
+            setTier,
             addXP,
             updateStreak,
             recordAnswer,

@@ -6,7 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { generateQuizQuestion, Question, MathCategory } from '@/lib/math-utils';
 import { useGame } from '@/context/GameContext';
-import { CheckCircle, XCircle, Clock, ArrowRight, RefreshCw, Trophy } from 'lucide-react';
+import { useThemeStore } from '@/store/themeStore';
+import { useProgressStore } from '@/store/progressStore';
+import { CheckCircle, XCircle, Clock, ArrowRight, RefreshCw, Trophy, Snowflake, Divide } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { playSuccessSound, playErrorSound, playClickSound } from '@/lib/sound';
 import confetti from 'canvas-confetti';
@@ -19,6 +21,8 @@ interface QuizGameProps {
 
 export function QuizGame({ category, config, onComplete }: QuizGameProps) {
     const { recordAnswer, addXP, settings } = useGame();
+    const { realm } = useThemeStore();
+    const { inventory, consumeItem } = useProgressStore();
     const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
     const [selectedOption, setSelectedOption] = useState<string | number | null>(null);
     const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
@@ -28,27 +32,29 @@ export function QuizGame({ category, config, onComplete }: QuizGameProps) {
     const [startTime, setStartTime] = useState<number>(0);
     const [timeLeft, setTimeLeft] = useState<number>(config?.timeLimit || 0);
 
+    // Power-up states
+    const [isFrozen, setIsFrozen] = useState(false);
+    const [disabledOptions, setDisabledOptions] = useState<(string | number)[]>([]);
+
     const totalQuestions = config?.totalQuestions || 10;
 
     useEffect(() => {
         loadNextQuestion();
     }, []);
 
+    // Timer Logic
     useEffect(() => {
-        if (config?.timeLimit && timeLeft > 0 && !selectedOption) {
+        if (!config?.timeLimit || selectedOption !== null || isFrozen) return;
+
+        if (timeLeft > 0) {
             const timer = setInterval(() => {
-                setTimeLeft((prev) => {
-                    if (prev <= 1) {
-                        clearInterval(timer);
-                        handleTimeout();
-                        return 0;
-                    }
-                    return prev - 1;
-                });
+                setTimeLeft((prev) => prev - 1);
             }, 1000);
             return () => clearInterval(timer);
+        } else if (timeLeft === 0) {
+            handleTimeout();
         }
-    }, [timeLeft, selectedOption]);
+    }, [timeLeft, selectedOption, isFrozen]);
 
     const loadNextQuestion = () => {
         if (questionCount >= totalQuestions) {
@@ -67,9 +73,15 @@ export function QuizGame({ category, config, onComplete }: QuizGameProps) {
         setIsCorrect(null);
         setStartTime(Date.now());
         if (config?.timeLimit) setTimeLeft(config.timeLimit);
+
+        // Reset power-ups
+        setIsFrozen(false);
+        setDisabledOptions([]);
     };
 
     const handleTimeout = () => {
+        if (selectedOption !== null) return; // Already answered
+
         setSelectedOption('TIMEOUT');
         setIsCorrect(false);
         if (settings.soundEnabled) playErrorSound();
@@ -95,12 +107,53 @@ export function QuizGame({ category, config, onComplete }: QuizGameProps) {
             setScore(s => s + 1);
             setStreak(s => s + 1);
             addXP(10 + (streak * 2)); // Bonus XP for streaks
+
+            // Realm-specific confetti
+            const colors = realm === 'sakura'
+                ? ['#e44372', '#f5d48e', '#ffffff']
+                : ['#d64040', '#f78c29', '#ffff00'];
+
+            confetti({
+                particleCount: 30,
+                spread: 50,
+                origin: { y: 0.7 },
+                colors: colors,
+                shapes: realm === 'sakura' ? ['circle'] : ['square'],
+                scalar: realm === 'sakura' ? 0.8 : 0.6
+            });
+
         } else {
             setStreak(0);
         }
 
         recordAnswer(category, correct, timeTaken);
         setQuestionCount(c => c + 1);
+    };
+
+    // Power-up Handlers
+    const useFreeze = () => {
+        if (inventory.freeze > 0 && !isFrozen && selectedOption === null) {
+            consumeItem('freeze');
+            setIsFrozen(true);
+            setTimeout(() => setIsFrozen(false), 10000); // Freeze for 10s
+        }
+    };
+
+    const useExtraTime = () => {
+        if (inventory.extraTime > 0 && selectedOption === null) {
+            consumeItem('extraTime');
+            setTimeLeft(prev => prev + 10);
+        }
+    };
+
+    const useFiftyFifty = () => {
+        if (inventory.fiftyFifty > 0 && selectedOption === null && currentQuestion && disabledOptions.length === 0) {
+            consumeItem('fiftyFifty');
+            const wrongOptions = (currentQuestion.options || []).filter(o => o !== currentQuestion.answer);
+            // Shuffle and take 2
+            const toRemove = wrongOptions.sort(() => 0.5 - Math.random()).slice(0, 2);
+            setDisabledOptions(toRemove);
+        }
     };
 
     if (!currentQuestion) return <div>Loading...</div>;
@@ -134,72 +187,151 @@ export function QuizGame({ category, config, onComplete }: QuizGameProps) {
     }
 
     return (
-        <div className="space-y-6 max-w-md mx-auto">
-            <div className="flex justify-between items-center text-sm font-medium">
-                <span className="text-muted-foreground">Question {questionCount + 1}/{totalQuestions}</span>
-                {config?.timeLimit && (
-                    <span className={`flex items-center gap-1 ${timeLeft < 5 ? 'text-red-500 animate-pulse font-bold' : 'text-primary'}`}>
-                        <Clock className="h-4 w-4" /> {timeLeft}s
+        <div className="space-y-6 max-w-2xl mx-auto">
+            {/* Header Stats */}
+            <div className="flex justify-between items-center px-4 py-3 bg-white/5 rounded-2xl backdrop-blur-sm border border-white/10">
+                <div className="flex items-center gap-4">
+                    <span className="text-sm font-medium text-muted-foreground">
+                        Question {questionCount + 1}/{totalQuestions}
                     </span>
+                    <div className="h-4 w-[1px] bg-white/10" />
+                    <span className="text-sm font-medium text-primary">
+                        Score: {score}
+                    </span>
+                </div>
+
+                {config?.timeLimit && (
+                    <div className={`flex items-center gap-2 px-3 py-1 rounded-full border ${timeLeft < 5
+                        ? 'bg-red-500/20 border-red-500/50 text-red-500 animate-pulse'
+                        : 'bg-primary/10 border-primary/20 text-primary'
+                        }`}>
+                        <Clock className="h-4 w-4" />
+                        <span className="font-mono font-bold">{timeLeft}s</span>
+                    </div>
                 )}
             </div>
 
-            <ProgressBar value={questionCount} max={totalQuestions} className="h-3" />
+            <ProgressBar value={questionCount} max={totalQuestions} className="h-2" />
 
-            <Card className="overflow-hidden glass-card border-white/10">
-                <CardHeader className="bg-black/20 py-12 text-center">
-                    <h2 className="text-4xl font-bold tracking-tight">{currentQuestion.question}</h2>
+            <Card className="overflow-hidden glass-card border-white/10 shadow-2xl">
+                <CardHeader className="bg-black/20 py-16 text-center relative overflow-hidden">
+                    {/* Background decoration */}
+                    <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary via-transparent to-transparent" />
+
+                    <motion.h2
+                        key={currentQuestion.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-5xl md:text-6xl font-black tracking-tight relative z-10"
+                    >
+                        {currentQuestion.question}
+                    </motion.h2>
                 </CardHeader>
-                <CardContent className="p-6 grid gap-4">
-                    <AnimatePresence mode="wait">
-                        {currentQuestion.options?.map((option, idx) => (
-                            <motion.div
-                                key={`${currentQuestion.id}-${idx}`}
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: idx * 0.05 }}
-                            >
-                                <Button
-                                    variant={
-                                        selectedOption === option
-                                            ? isCorrect
-                                                ? "default" // Correct selected
-                                                : "destructive" // Wrong selected
-                                            : selectedOption !== null && option === currentQuestion.answer
-                                                ? "default" // Show correct if wrong selected
-                                                : "outline"
-                                    }
-                                    className={`w-full h-16 text-xl justify-between px-6 transition-all duration-200 ${selectedOption !== null && option === currentQuestion.answer
-                                            ? "bg-green-500 hover:bg-green-600 text-white border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.5)]"
-                                            : "hover:scale-[1.02] hover:bg-white/5"
-                                        } ${selectedOption === option && !isCorrect ? "animate-shake" : ""}`}
-                                    onClick={() => handleAnswer(option)}
-                                    disabled={selectedOption !== null}
-                                >
-                                    <span>{option}</span>
-                                    {selectedOption === option && (
-                                        isCorrect ? <CheckCircle className="h-6 w-6" /> : <XCircle className="h-6 w-6" />
-                                    )}
-                                </Button>
-                            </motion.div>
-                        ))}
-                    </AnimatePresence>
+
+                <CardContent className="p-6 md:p-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <AnimatePresence mode="popLayout">
+                            {currentQuestion.options && currentQuestion.options.map((option, idx) => {
+                                const isDisabled = disabledOptions.includes(option);
+                                if (isDisabled) return null;
+
+                                return (
+                                    <motion.div
+                                        key={`${currentQuestion.id}-${idx}`}
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{ delay: idx * 0.05 }}
+                                    >
+                                        <Button
+                                            variant={
+                                                selectedOption === option
+                                                    ? isCorrect
+                                                        ? "default"
+                                                        : "destructive"
+                                                    : selectedOption !== null && option === currentQuestion.answer
+                                                        ? "default"
+                                                        : "outline"
+                                            }
+                                            className={`w-full h-20 text-2xl font-bold transition-all duration-200 relative overflow-hidden group ${selectedOption !== null && option === currentQuestion.answer
+                                                ? "bg-green-500 hover:bg-green-600 text-white border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.5)]"
+                                                : "hover:scale-[1.02] hover:bg-primary/5 hover:border-primary/50"
+                                                } ${selectedOption === option && !isCorrect ? "animate-shake" : ""}`}
+                                            onClick={() => handleAnswer(option)}
+                                            disabled={selectedOption !== null}
+                                        >
+                                            <span className="relative z-10">{option}</span>
+                                            {selectedOption === option && (
+                                                <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                                                    {isCorrect ? (
+                                                        <CheckCircle className="h-6 w-6 animate-bounce" />
+                                                    ) : (
+                                                        <XCircle className="h-6 w-6 animate-pulse" />
+                                                    )}
+                                                </div>
+                                            )}
+                                        </Button>
+                                    </motion.div>
+                                )
+                            })}
+                        </AnimatePresence>
+                    </div>
+
+                    {/* Power-ups Bar */}
+                    <div className="flex justify-center gap-4 mt-8 pt-6 border-t border-white/10">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                            onClick={useFreeze}
+                            disabled={inventory.freeze <= 0 || isFrozen || selectedOption !== null}
+                        >
+                            <Snowflake className={`h-4 w-4 ${isFrozen ? 'text-blue-400 animate-pulse' : ''}`} />
+                            <span className="text-xs font-bold">{inventory.freeze}</span>
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                            onClick={useExtraTime}
+                            disabled={inventory.extraTime <= 0 || selectedOption !== null}
+                        >
+                            <Clock className="h-4 w-4" />
+                            <span className="text-xs font-bold">{inventory.extraTime}</span>
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                            onClick={useFiftyFifty}
+                            disabled={inventory.fiftyFifty <= 0 || disabledOptions.length > 0 || selectedOption !== null}
+                        >
+                            <Divide className="h-4 w-4" />
+                            <span className="text-xs font-bold">{inventory.fiftyFifty}</span>
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
 
-            {selectedOption !== null && (
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                >
-                    <Button size="lg" className="w-full h-14 text-lg bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20" onClick={() => {
-                        if (settings.soundEnabled) playClickSound();
-                        loadNextQuestion();
-                    }}>
-                        Next Question <ArrowRight className="ml-2 h-5 w-5" />
-                    </Button>
-                </motion.div>
-            )}
+            <AnimatePresence>
+                {selectedOption !== null && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                    >
+                        <Button
+                            size="lg"
+                            className="w-full h-16 text-xl font-bold bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl"
+                            onClick={() => {
+                                if (settings.soundEnabled) playClickSound();
+                                loadNextQuestion();
+                            }}
+                        >
+                            Next Question <ArrowRight className="ml-2 h-6 w-6" />
+                        </Button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
