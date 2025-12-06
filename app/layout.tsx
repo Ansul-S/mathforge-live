@@ -37,33 +37,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  var storageKey = 'theme';
-                  var className = 'dark';
-                  var localTheme = localStorage.getItem(storageKey);
-                  var systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                  
-                  if (localTheme === 'dark' || (!localTheme && systemTheme)) {
-                    document.documentElement.classList.add(className);
-                  } else {
-                    document.documentElement.classList.remove(className);
-                  }
-                } catch (e) {}
-              })();
-            `,
-          }}
-        />
-      </head>
       <body className={`${inter.className} min-h-screen bg-background text-foreground antialiased flex flex-col`}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="light"
+          enableSystem={false}
+          storageKey="mathforge-theme-v1"
           disableTransitionOnChange
         >
           <GameProvider>
