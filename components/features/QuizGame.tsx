@@ -130,6 +130,11 @@ export function QuizGame({ category, config, onComplete }: QuizGameProps) {
                 scalar: realm === 'sakura' ? 0.8 : 0.6
             });
 
+            // Auto-advance after 1 second
+            setTimeout(() => {
+                loadNextQuestion();
+            }, 1000);
+
         } else {
             setStreak(0);
         }

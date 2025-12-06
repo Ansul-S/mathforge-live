@@ -169,6 +169,23 @@ function createQuestion(
 
     switch (category) {
         case 'tables': {
+            if (config?.table) {
+                const num = config.table;
+                const mult = Math.floor(Math.random() * (params.maxMult || 10)) + 1;
+                const answer = num * mult;
+
+                const options = generateOptions(answer, optionCount, 'number');
+                const correctOption = options.find(o => o.value === answer)!;
+
+                return {
+                    id: `${num}x${mult}`,
+                    question: `${num} × ${mult} = ?`,
+                    correctOptionId: correctOption.id,
+                    options,
+                    category
+                };
+            }
+
             const min = config?.min || params.min;
             const max = config?.max || params.max;
             const num = Math.floor(Math.random() * (max - min + 1)) + min;

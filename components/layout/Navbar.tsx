@@ -147,6 +147,23 @@ export function Navbar() {
                         </div>
                     </div>
 
+                    {/* Mobile Navigation (Horizontal Scroll) */}
+                    <div className="xl:hidden w-full overflow-x-auto pb-2 px-4 flex items-center gap-6 no-scrollbar">
+                        {navItems.map((item) => (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                className={cn(
+                                    "text-sm whitespace-nowrap transition-colors py-1",
+                                    pathname === item.href ? cn("font-bold", activeColor) : inactiveColor,
+                                    hoverColor
+                                )}
+                            >
+                                {item.name}
+                            </Link>
+                        ))}
+                    </div>
+
                     {/* Lore Display Bar */}
                     <div className={cn(
                         "w-full border-t",

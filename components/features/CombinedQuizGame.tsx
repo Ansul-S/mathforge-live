@@ -119,6 +119,11 @@ export function CombinedQuizGame({ config, onComplete }: CombinedQuizGameProps) 
             setScore(s => s + 1);
             setStreak(s => s + 1);
             addXP(15 + (streak * 3)); // Higher XP for mixed/input mode
+
+            // Auto-advance
+            setTimeout(() => {
+                loadNextQuestion();
+            }, 1000);
         } else {
             setStreak(0);
         }
