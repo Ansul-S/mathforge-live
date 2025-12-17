@@ -8,6 +8,8 @@ import { getTable } from '@/lib/math-utils';
 import { QuizGame } from '@/components/features/QuizGame';
 import { Flashcard } from '@/components/features/Flashcard';
 import { BookOpen, Zap, Brain, ArrowLeft, ArrowRight } from 'lucide-react';
+import { PracticeModeToggle } from '@/components/ui/PracticeModeToggle';
+import { RevealableAnswer } from '@/components/ui/RevealableAnswer';
 import { TierSelection, TIERS, Tier } from '@/components/game/TierSelection';
 import { useGame } from '@/context/GameContext';
 
@@ -22,7 +24,31 @@ export default function TablesPage() {
     const [selectedTable, setSelectedTable] = useState<number>(7);
     const [tableLimit, setTableLimit] = useState<number>(10);
     const [quizConfig, setQuizConfig] = useState<any>(null);
+    const [isPracticeMode, setIsPracticeMode] = useState(false);
     const { currentTier, setTier } = useGame();
+
+    const FRACTIONS = [0.25, 0.3333, 0.5];
+
+    const formatTableNumber = (num: number) => {
+        if (num === 0.25) return "1/4";
+        if (num === 0.3333) return "1/3";
+        if (num === 0.5) return "1/2";
+        return num.toString();
+    };
+
+    const handleNextTable = () => {
+        if (selectedTable === 0.25) setSelectedTable(0.3333);
+        else if (selectedTable === 0.3333) setSelectedTable(0.5);
+        else if (selectedTable === 0.5) setSelectedTable(1);
+        else setSelectedTable(Math.min(50, selectedTable + 1));
+    };
+
+    const handlePrevTable = () => {
+        if (selectedTable === 1) setSelectedTable(0.5);
+        else if (selectedTable === 0.5) setSelectedTable(0.3333);
+        else if (selectedTable === 0.3333) setSelectedTable(0.25);
+        else setSelectedTable(Math.max(0.25, selectedTable - 1));
+    };
 
     // Reset tier when leaving quiz mode
     useEffect(() => {
@@ -37,17 +63,24 @@ export default function TablesPage() {
         const data = getTable(selectedTable, tableLimit);
         return (
             <div className="space-y-4">
-                <div className="flex items-center justify-center gap-4 mb-6">
-                    <Button variant="outline" size="icon" onClick={() => setSelectedTable(Math.max(1, selectedTable - 1))}>
-                        <ArrowLeft className="h-4 w-4" />
-                    </Button>
-                    <div className="text-center">
-                        <div className="text-sm text-muted-foreground">Table of</div>
-                        <div className="text-3xl font-bold">{selectedTable}</div>
+                <div className="flex flex-col items-center gap-4 mb-6">
+                    <PracticeModeToggle
+                        isActive={isPracticeMode}
+                        onToggle={() => setIsPracticeMode(!isPracticeMode)}
+                        className="mb-2"
+                    />
+                    <div className="flex items-center justify-center gap-4">
+                        <Button variant="outline" size="icon" onClick={handlePrevTable} disabled={selectedTable <= 0.25}>
+                            <ArrowLeft className="h-4 w-4" />
+                        </Button>
+                        <div className="text-center min-w-[120px]">
+                            <div className="text-sm text-muted-foreground">Table of</div>
+                            <div className="text-3xl font-bold">{formatTableNumber(selectedTable)}</div>
+                        </div>
+                        <Button variant="outline" size="icon" onClick={handleNextTable} disabled={selectedTable >= 50}>
+                            <ArrowRight className="h-4 w-4" />
+                        </Button>
                     </div>
-                    <Button variant="outline" size="icon" onClick={() => setSelectedTable(Math.min(50, selectedTable + 1))}>
-                        <ArrowRight className="h-4 w-4" />
-                    </Button>
                 </div>
 
                 <div className="flex justify-center gap-2 mb-4">
@@ -68,16 +101,26 @@ export default function TablesPage() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-2xl mx-auto">
-                    {data.map((row) => (
-                        <Card key={row.multiplier} className="hover:bg-accent/50 transition-colors">
-                            <CardContent className="p-4 flex justify-between items-center">
-                                <span className="text-lg font-medium text-muted-foreground">
-                                    {row.multiplicand} × {row.multiplier}
-                                </span>
-                                <span className="text-2xl font-bold text-primary">= {row.result}</span>
-                            </CardContent>
-                        </Card>
-                    ))}
+                    {data.map((row) => {
+                        // Fix float precision issues for display
+                        let resultDisplay = row.result;
+                        if (!Number.isInteger(resultDisplay)) {
+                            resultDisplay = parseFloat(resultDisplay.toFixed(4));
+                        }
+
+                        return (
+                            <Card key={row.multiplier} className="hover:bg-accent/50 transition-colors">
+                                <CardContent className="p-4 flex justify-between items-center">
+                                    <span className="text-lg font-medium text-muted-foreground">
+                                        {formatTableNumber(row.multiplicand)} × {row.multiplier}
+                                    </span>
+                                    <span className="text-2xl font-bold text-primary flex items-center gap-2">
+                                        = <RevealableAnswer value={resultDisplay} isHidden={isPracticeMode} />
+                                    </span>
+                                </CardContent>
+                            </Card>
+                        );
+                    })}
                 </div>
             </div>
         );
@@ -95,21 +138,21 @@ export default function TablesPage() {
         return (
             <div className="space-y-8 py-10">
                 <div className="flex items-center justify-center gap-4 mb-6">
-                    <Button variant="outline" size="icon" onClick={() => setSelectedTable(Math.max(1, selectedTable - 1))}>
+                    <Button variant="outline" size="icon" onClick={handlePrevTable} disabled={selectedTable <= 0.25}>
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <div className="text-center">
                         <div className="text-sm text-muted-foreground">Table of</div>
-                        <div className="text-3xl font-bold">{selectedTable}</div>
+                        <div className="text-3xl font-bold">{formatTableNumber(selectedTable)}</div>
                     </div>
-                    <Button variant="outline" size="icon" onClick={() => setSelectedTable(Math.min(50, selectedTable + 1))}>
+                    <Button variant="outline" size="icon" onClick={handleNextTable} disabled={selectedTable >= 50}>
                         <ArrowRight className="h-4 w-4" />
                     </Button>
                 </div>
 
                 <Flashcard
-                    front={`${currentItem.multiplicand} × ${currentItem.multiplier} = ?`}
-                    back={`${currentItem.result}`}
+                    front={`${formatTableNumber(currentItem.multiplicand)} × ${currentItem.multiplier} = ?`}
+                    back={`${parseFloat(currentItem.result.toFixed(4))}`}
                 />
 
                 <div className="flex justify-center gap-4">
@@ -161,14 +204,14 @@ export default function TablesPage() {
                 </div>
 
                 <div className="flex items-center justify-center gap-4 mb-6">
-                    <Button variant="outline" size="icon" onClick={() => setSelectedTable(Math.max(1, selectedTable - 1))}>
+                    <Button variant="outline" size="icon" onClick={handlePrevTable} disabled={selectedTable <= 0.25}>
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <div className="text-center">
                         <div className="text-sm text-muted-foreground">Selected Table</div>
-                        <div className="text-3xl font-bold">{selectedTable}</div>
+                        <div className="text-3xl font-bold">{formatTableNumber(selectedTable)}</div>
                     </div>
-                    <Button variant="outline" size="icon" onClick={() => setSelectedTable(Math.min(50, selectedTable + 1))}>
+                    <Button variant="outline" size="icon" onClick={handleNextTable} disabled={selectedTable >= 50}>
                         <ArrowRight className="h-4 w-4" />
                     </Button>
                 </div>
@@ -176,10 +219,10 @@ export default function TablesPage() {
                 <div className="grid gap-6 max-w-2xl mx-auto">
                     <Card className="cursor-pointer hover:border-primary transition-colors" onClick={() => startQuiz('specific')}>
                         <CardHeader>
-                            <CardTitle>Practice Table of {selectedTable}</CardTitle>
+                            <CardTitle>Practice Table of {formatTableNumber(selectedTable)}</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            Focus on mastering the table of {selectedTable}.
+                            Focus on mastering the table of {formatTableNumber(selectedTable)}.
                         </CardContent>
                     </Card>
 

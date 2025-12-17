@@ -9,7 +9,8 @@ interface LearnListProps {
     items: {
         id: string | number;
         label: string;
-        value: string | number;
+        value: React.ReactNode;
+        rawValue?: string | number; // Added for search when value is a component
         detail?: string;
     }[];
     title?: string;
@@ -18,10 +19,13 @@ interface LearnListProps {
 export function LearnList({ items, title }: LearnListProps) {
     const [search, setSearch] = useState('');
 
-    const filteredItems = items.filter(item =>
-        item.label.toLowerCase().includes(search.toLowerCase()) ||
-        item.value.toString().toLowerCase().includes(search.toLowerCase())
-    );
+    const filteredItems = items.filter(item => {
+        const searchTarget = item.rawValue !== undefined ? item.rawValue : item.value;
+        return item.label.toLowerCase().includes(search.toLowerCase()) ||
+            (typeof searchTarget === 'string' || typeof searchTarget === 'number'
+                ? searchTarget.toString().toLowerCase().includes(search.toLowerCase())
+                : false);
+    });
 
     return (
         <div className="space-y-4">

@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/Button';
 import { BookOpen, Brain, Search, ArrowLeft } from 'lucide-react';
 import { TierSelection, TIERS, Tier } from '@/components/game/TierSelection';
 import { useGame } from '@/context/GameContext';
+import { PracticeModeToggle } from '@/components/ui/PracticeModeToggle';
+import { RevealableAnswer } from '@/components/ui/RevealableAnswer';
 
 const modes = [
     { id: 'learn', label: 'Learn', icon: <BookOpen className="h-4 w-4" /> },
@@ -18,6 +20,7 @@ const modes = [
 export default function ReciprocalsPage() {
     const [mode, setMode] = useState('learn');
     const [search, setSearch] = useState('');
+    const [isPracticeMode, setIsPracticeMode] = useState(false);
     const { currentTier, setTier } = useGame();
 
     // Reset tier when leaving quiz mode
@@ -46,6 +49,12 @@ export default function ReciprocalsPage() {
 
             {mode === 'learn' && (
                 <div className="space-y-4">
+                    <div className="flex justify-center mb-4">
+                        <PracticeModeToggle
+                            isActive={isPracticeMode}
+                            onToggle={() => setIsPracticeMode(!isPracticeMode)}
+                        />
+                    </div>
                     <div className="relative">
                         <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                         <input
@@ -65,13 +74,17 @@ export default function ReciprocalsPage() {
                                     <div className="text-sm text-muted-foreground">1 ÷ {item.n}</div>
                                 </div>
                                 <div className="space-y-1">
-                                    <div className="flex justify-between">
+                                    <div className="flex justify-between items-center">
                                         <span className="text-muted-foreground">Decimal:</span>
-                                        <span className="font-mono">{item.decimal}</span>
+                                        <span className="font-mono">
+                                            <RevealableAnswer value={item.decimal} isHidden={isPracticeMode} />
+                                        </span>
                                     </div>
-                                    <div className="flex justify-between">
+                                    <div className="flex justify-between items-center">
                                         <span className="text-muted-foreground">Percentage:</span>
-                                        <span className="font-mono font-medium text-primary">{item.percentage}%</span>
+                                        <span className="font-mono font-medium text-primary">
+                                            <RevealableAnswer value={`${item.percentage}%`} isHidden={isPracticeMode} />
+                                        </span>
                                     </div>
                                 </div>
                             </Card>

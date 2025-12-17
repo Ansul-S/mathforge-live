@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/Button';
 import { BookOpen, Brain, ArrowLeft } from 'lucide-react';
 import { TierSelection, TIERS, Tier } from '@/components/game/TierSelection';
 import { useGame } from '@/context/GameContext';
+import { PracticeModeToggle } from '@/components/ui/PracticeModeToggle';
+import { RevealableAnswer } from '@/components/ui/RevealableAnswer';
 
 const modes = [
     { id: 'learn', label: 'Learn', icon: <BookOpen className="h-4 w-4" /> },
@@ -20,6 +22,7 @@ const bases = [2, 3, 5, 6, 7];
 export default function PowersPage() {
     const [mode, setMode] = useState('learn');
     const [activeBase, setActiveBase] = useState(2);
+    const [isPracticeMode, setIsPracticeMode] = useState(false);
     const { currentTier, setTier } = useGame();
 
     // Reset tier when leaving quiz mode
@@ -44,17 +47,23 @@ export default function PowersPage() {
 
             {mode === 'learn' && (
                 <div className="space-y-6">
-                    <div className="flex overflow-x-auto pb-2 gap-2 no-scrollbar">
-                        {bases.map((base) => (
-                            <Button
-                                key={base}
-                                variant={activeBase === base ? "default" : "outline"}
-                                onClick={() => setActiveBase(base)}
-                                className="min-w-[80px]"
-                            >
-                                Base {base}
-                            </Button>
-                        ))}
+                    <div className="flex flex-col items-center gap-4">
+                        <PracticeModeToggle
+                            isActive={isPracticeMode}
+                            onToggle={() => setIsPracticeMode(!isPracticeMode)}
+                        />
+                        <div className="flex overflow-x-auto pb-2 gap-2 no-scrollbar">
+                            {bases.map((base) => (
+                                <Button
+                                    key={base}
+                                    variant={activeBase === base ? "default" : "outline"}
+                                    onClick={() => setActiveBase(base)}
+                                    className="min-w-[80px]"
+                                >
+                                    Base {base}
+                                </Button>
+                            ))}
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
@@ -63,7 +72,9 @@ export default function PowersPage() {
                                 <div className="text-lg text-muted-foreground mb-1">
                                     {item.base}<sup className="text-xs">{item.exponent}</sup>
                                 </div>
-                                <div className="text-2xl font-bold break-all">{item.result.toLocaleString()}</div>
+                                <div className="text-2xl font-bold break-all">
+                                    <RevealableAnswer value={item.result.toLocaleString()} isHidden={isPracticeMode} />
+                                </div>
                             </Card>
                         ))}
                     </div>

@@ -10,6 +10,8 @@ import { BookOpen, Zap, Brain, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { TierSelection, TIERS, Tier } from '@/components/game/TierSelection';
 import { useGame } from '@/context/GameContext';
+import { PracticeModeToggle } from '@/components/ui/PracticeModeToggle';
+import { RevealableAnswer } from '@/components/ui/RevealableAnswer';
 
 const modes = [
     { id: 'learn', label: 'Learn', icon: <BookOpen className="h-4 w-4" /> },
@@ -19,6 +21,7 @@ const modes = [
 
 export default function SquaresPage() {
     const [mode, setMode] = useState('learn');
+    const [isPracticeMode, setIsPracticeMode] = useState(false);
     const { currentTier, setTier } = useGame();
 
     // Reset tier when leaving quiz mode
@@ -31,7 +34,8 @@ export default function SquaresPage() {
     const squaresData = getSquares(100).map(item => ({
         id: item.n,
         label: `${item.n}²`,
-        value: item.result,
+        value: <RevealableAnswer value={item.result} isHidden={isPracticeMode} />,
+        rawValue: item.result,
         detail: item.n % 10 === 5 ? 'Ends in 25' : undefined // Simple pattern tip example
     }));
 
@@ -65,9 +69,15 @@ export default function SquaresPage() {
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 <h1 className="text-3xl font-bold tracking-tight">Squares (1-100)</h1>
-                <ModeSelector modes={modes} currentMode={mode} onSelect={(m) => {
-                    setMode(m);
-                }} />
+                <div className="flex items-center gap-4">
+                    <PracticeModeToggle
+                        isActive={isPracticeMode}
+                        onToggle={() => setIsPracticeMode(!isPracticeMode)}
+                    />
+                    <ModeSelector modes={modes} currentMode={mode} onSelect={(m) => {
+                        setMode(m);
+                    }} />
+                </div>
             </div>
 
             {mode === 'learn' && <LearnList items={squaresData} />}
