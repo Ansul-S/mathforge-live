@@ -59,12 +59,10 @@ export function Footer() {
                     <div className="space-y-4">
                         <h3 className={cn("font-bold", textPrimary)}>Connect</h3>
                         <div className="flex gap-4">
-                            <a href="#" className={cn("transition-colors", textSecondary, hoverColor)}>
+                            <a href="https://github.com/Ansul-S" target="_blank" rel="noopener noreferrer" className={cn("transition-colors", textSecondary, hoverColor)}>
                                 <Github className="h-5 w-5" />
                             </a>
-                            <a href="#" className={cn("transition-colors", textSecondary, hoverColor)}>
-                                <Twitter className="h-5 w-5" />
-                            </a>
+
                         </div>
                         <p className={cn("text-sm pt-4", textSecondary)}>
                             © {new Date().getFullYear()} MathForge.
