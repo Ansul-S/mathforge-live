@@ -27,26 +27,27 @@ export default function TablesPage() {
     const [isPracticeMode, setIsPracticeMode] = useState(false);
     const { currentTier, setTier } = useGame();
 
-    const FRACTIONS = [0.25, 0.3333, 0.5];
+    const FRACTIONS = [0.25, 0.5, 0.75];
 
     const formatTableNumber = (num: number) => {
         if (num === 0.25) return "1/4";
-        if (num === 0.3333) return "1/3";
+
         if (num === 0.5) return "1/2";
+        if (num === 0.75) return "3/4";
         return num.toString();
     };
 
     const handleNextTable = () => {
-        if (selectedTable === 0.25) setSelectedTable(0.3333);
-        else if (selectedTable === 0.3333) setSelectedTable(0.5);
-        else if (selectedTable === 0.5) setSelectedTable(1);
+        if (selectedTable === 0.25) setSelectedTable(0.5);
+        else if (selectedTable === 0.5) setSelectedTable(0.75);
+        else if (selectedTable === 0.75) setSelectedTable(1);
         else setSelectedTable(Math.min(50, selectedTable + 1));
     };
 
     const handlePrevTable = () => {
-        if (selectedTable === 1) setSelectedTable(0.5);
-        else if (selectedTable === 0.5) setSelectedTable(0.3333);
-        else if (selectedTable === 0.3333) setSelectedTable(0.25);
+        if (selectedTable === 1) setSelectedTable(0.75);
+        else if (selectedTable === 0.75) setSelectedTable(0.5);
+        else if (selectedTable === 0.5) setSelectedTable(0.25);
         else setSelectedTable(Math.max(0.25, selectedTable - 1));
     };
 
