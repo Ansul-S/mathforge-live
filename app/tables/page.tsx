@@ -27,28 +27,32 @@ export default function TablesPage() {
     const [isPracticeMode, setIsPracticeMode] = useState(false);
     const { currentTier, setTier } = useGame();
 
-    const FRACTIONS = [0.25, 0.5, 0.75];
+    const ALL_TABLES = [
+        0.25, 0.5, 0.75, 1, 1.5, 2, 2.5,
+        ...Array.from({ length: 48 }, (_, i) => i + 3) // 3 to 50
+    ];
 
     const formatTableNumber = (num: number) => {
         if (num === 0.25) return "1/4";
-
         if (num === 0.5) return "1/2";
         if (num === 0.75) return "3/4";
+        if (num === 1.5) return "3/2";
+        if (num === 2.5) return "5/2";
         return num.toString();
     };
 
     const handleNextTable = () => {
-        if (selectedTable === 0.25) setSelectedTable(0.5);
-        else if (selectedTable === 0.5) setSelectedTable(0.75);
-        else if (selectedTable === 0.75) setSelectedTable(1);
-        else setSelectedTable(Math.min(50, selectedTable + 1));
+        const currentIndex = ALL_TABLES.indexOf(selectedTable);
+        if (currentIndex < ALL_TABLES.length - 1) {
+            setSelectedTable(ALL_TABLES[currentIndex + 1]);
+        }
     };
 
     const handlePrevTable = () => {
-        if (selectedTable === 1) setSelectedTable(0.75);
-        else if (selectedTable === 0.75) setSelectedTable(0.5);
-        else if (selectedTable === 0.5) setSelectedTable(0.25);
-        else setSelectedTable(Math.max(0.25, selectedTable - 1));
+        const currentIndex = ALL_TABLES.indexOf(selectedTable);
+        if (currentIndex > 0) {
+            setSelectedTable(ALL_TABLES[currentIndex - 1]);
+        }
     };
 
     // Reset tier when leaving quiz mode
@@ -71,14 +75,14 @@ export default function TablesPage() {
                         className="mb-2"
                     />
                     <div className="flex items-center justify-center gap-4">
-                        <Button variant="outline" size="icon" onClick={handlePrevTable} disabled={selectedTable <= 0.25}>
+                        <Button variant="outline" size="icon" onClick={handlePrevTable} disabled={selectedTable <= ALL_TABLES[0]}>
                             <ArrowLeft className="h-4 w-4" />
                         </Button>
                         <div className="text-center min-w-[120px]">
                             <div className="text-sm text-muted-foreground">Table of</div>
                             <div className="text-3xl font-bold">{formatTableNumber(selectedTable)}</div>
                         </div>
-                        <Button variant="outline" size="icon" onClick={handleNextTable} disabled={selectedTable >= 50}>
+                        <Button variant="outline" size="icon" onClick={handleNextTable} disabled={selectedTable >= ALL_TABLES[ALL_TABLES.length - 1]}>
                             <ArrowRight className="h-4 w-4" />
                         </Button>
                     </div>
@@ -139,14 +143,14 @@ export default function TablesPage() {
         return (
             <div className="space-y-8 py-10">
                 <div className="flex items-center justify-center gap-4 mb-6">
-                    <Button variant="outline" size="icon" onClick={handlePrevTable} disabled={selectedTable <= 0.25}>
+                    <Button variant="outline" size="icon" onClick={handlePrevTable} disabled={selectedTable <= ALL_TABLES[0]}>
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <div className="text-center">
                         <div className="text-sm text-muted-foreground">Table of</div>
                         <div className="text-3xl font-bold">{formatTableNumber(selectedTable)}</div>
                     </div>
-                    <Button variant="outline" size="icon" onClick={handleNextTable} disabled={selectedTable >= 50}>
+                    <Button variant="outline" size="icon" onClick={handleNextTable} disabled={selectedTable >= ALL_TABLES[ALL_TABLES.length - 1]}>
                         <ArrowRight className="h-4 w-4" />
                     </Button>
                 </div>
@@ -205,14 +209,14 @@ export default function TablesPage() {
                 </div>
 
                 <div className="flex items-center justify-center gap-4 mb-6">
-                    <Button variant="outline" size="icon" onClick={handlePrevTable} disabled={selectedTable <= 0.25}>
+                    <Button variant="outline" size="icon" onClick={handlePrevTable} disabled={selectedTable <= ALL_TABLES[0]}>
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <div className="text-center">
                         <div className="text-sm text-muted-foreground">Selected Table</div>
                         <div className="text-3xl font-bold">{formatTableNumber(selectedTable)}</div>
                     </div>
-                    <Button variant="outline" size="icon" onClick={handleNextTable} disabled={selectedTable >= 50}>
+                    <Button variant="outline" size="icon" onClick={handleNextTable} disabled={selectedTable >= ALL_TABLES[ALL_TABLES.length - 1]}>
                         <ArrowRight className="h-4 w-4" />
                     </Button>
                 </div>
